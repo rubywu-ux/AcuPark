@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "figma-reader": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "figma-developer-mcp",
+        "--figma-api-key=YOUR_FIGMA_API_KEY",
+        "--stdio"
+      ]
+    },
+    "figma-editor": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "cursor-talk-to-figma-mcp@latest"
+      ]
+    }
+  }
+}
