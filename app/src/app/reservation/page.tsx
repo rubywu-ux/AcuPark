@@ -16,8 +16,16 @@ export default function ReservationPage() {
   const [lot, setLot] = useState<ParkingLot | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDates, setSelectedDates] = useState<string[]>([new Date().toISOString().split('T')[0]]);
+  const [isMultiDay, setIsMultiDay] = useState(false);
   const [time, setTime] = useState("13:00");
   const [duration, setDuration] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Stable spot data
+  const [spots, setSpots] = useState<{id: string, isOccupied: boolean}[]>([]);
 
   useEffect(() => {
     if (lotId) {
@@ -25,6 +33,21 @@ export default function ReservationPage() {
         const found = lots.find(l => l.id === lotId);
         setLot(found || null);
       });
+      
+      // Generate stable spots
+      const rows = ['A', 'B', 'C', 'D'];
+      const cols = [1, 2, 3, 4];
+      const newSpots = [];
+      
+      for (const row of rows) {
+        for (const col of cols) {
+          newSpots.push({
+            id: `${row}${col}`,
+            isOccupied: Math.random() > 0.7
+          });
+        }
+      }
+      setSpots(newSpots);
     }
   }, [lotId]);
 
@@ -32,33 +55,26 @@ export default function ReservationPage() {
 
   // Mock Spots Grid
   const renderSpotGrid = () => {
-    const rows = ['A', 'B', 'C', 'D'];
-    const cols = [1, 2, 3, 4];
-    
     return (
       <div className="grid grid-cols-4 gap-3 mb-6">
-        {rows.map(row => (
-          cols.map(col => {
-            const spotId = `${row}${col}`;
-            const isOccupied = Math.random() > 0.7; // Randomly occupied
-            const isSelected = selectedSpot === spotId;
+        {spots.map(spot => {
+            const isSelected = selectedSpot === spot.id;
             
             return (
               <button
-                key={spotId}
-                disabled={isOccupied}
-                onClick={() => setSelectedSpot(spotId)}
+                key={spot.id}
+                disabled={spot.isOccupied}
+                onClick={() => setSelectedSpot(spot.id)}
                 className={clsx(
                   "aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition-all",
-                  isOccupied ? "bg-gray-200 text-gray-400 cursor-not-allowed" : 
+                  spot.isOccupied ? "bg-gray-200 text-gray-400 cursor-not-allowed" : 
                   isSelected ? "bg-blue-600 text-white shadow-lg scale-105" : "bg-green-100 text-green-800 hover:bg-green-200"
                 )}
               >
-                {spotId}
+                {spot.id}
               </button>
             );
-          })
-        ))}
+        })}
       </div>
     );
   };
@@ -77,7 +93,7 @@ export default function ReservationPage() {
 
       {/* Step 1: Spot Selection */}
       {step === 1 && (
-        <div className="animate-in slide-in-from-right fade-in duration-300">
+        <div className="animate-in slide-in-from-right fade-in duration-200">
           <div className="bg-white p-4 rounded-2xl shadow-sm mb-6">
             <h2 className="font-bold text-lg mb-2">{lot.name}</h2>
             <p className="text-gray-500 text-sm">Select your preferred spot</p>
@@ -103,18 +119,105 @@ export default function ReservationPage() {
 
       {/* Step 2: Time Setup */}
       {step === 2 && (
-        <div className="animate-in slide-in-from-right fade-in duration-300">
+        <div className="animate-in slide-in-from-right fade-in duration-200">
           <div className="bg-white p-6 rounded-2xl shadow-sm mb-6 space-y-6">
+            
+            {/* Date Mode Toggle */}
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+              <button
+                onClick={() => setIsMultiDay(false)}
+                className={clsx(
+                  "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
+                  !isMultiDay ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Single Day
+              </button>
+              <button
+                onClick={() => setIsMultiDay(true)}
+                className={clsx(
+                  "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
+                  isMultiDay ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"
+                )}
+              >
+                Multiple Dates
+              </button>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <Calendar size={16} className="mr-2" /> Date
+                <Calendar size={16} className="mr-2" /> 
+                {isMultiDay ? "Select Dates" : "Date"}
               </label>
-              <input 
-                type="date" 
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
-              />
+              
+              {!isMultiDay ? (
+                <input 
+                  type="date" 
+                  min={today}
+                  value={date}
+                  onChange={(e) => {
+                    setDate(e.target.value);
+                    setSelectedDates([e.target.value]);
+                    setError(null);
+                  }}
+                  className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <input 
+                      type="date" 
+                      min={today}
+                      id="multi-date-input"
+                      className="flex-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button 
+                      onClick={() => {
+                        const input = document.getElementById('multi-date-input') as HTMLInputElement;
+                        if (input.value) {
+                          if (input.value < today) {
+                            setError("Cannot select past dates");
+                            return;
+                          }
+                          if (!selectedDates.includes(input.value)) {
+                            const newDates = [...selectedDates, input.value].sort();
+                            setSelectedDates(newDates);
+                            setDate(newDates[0]); // Keep primary date as first selected
+                            input.value = '';
+                            setError(null);
+                          }
+                        }
+                      }}
+                      className="bg-blue-100 text-blue-600 px-4 rounded-xl font-medium hover:bg-blue-200"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  
+                  {selectedDates.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {selectedDates.map(d => (
+                        <div key={d} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center">
+                          {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          <button 
+                            onClick={() => {
+                              const newDates = selectedDates.filter(date => date !== d);
+                              setSelectedDates(newDates);
+                              if (newDates.length > 0) setDate(newDates[0]);
+                            }}
+                            className="ml-2 text-blue-400 hover:text-blue-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {selectedDates.length === 0 && (
+                    <p className="text-sm text-red-500">Please select at least one date.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -124,7 +227,10 @@ export default function ReservationPage() {
               <input 
                 type="time" 
                 value={time}
-                onChange={(e) => setTime(e.target.value)}
+                onChange={(e) => {
+                  setTime(e.target.value);
+                  setError(null);
+                }}
                 className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -148,9 +254,34 @@ export default function ReservationPage() {
             </div>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm flex items-center">
+              <span className="mr-2">⚠️</span> {error}
+            </div>
+          )}
+
           <button
-            onClick={() => setStep(3)}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl transition-colors"
+            disabled={isMultiDay && selectedDates.length === 0}
+            onClick={() => {
+              // Validate time if date is today
+              const now = new Date();
+              const currentHour = now.getHours();
+              const currentMinute = now.getMinutes();
+              const [selectedHour, selectedMinute] = time.split(':').map(Number);
+              
+              // Check if any selected date is today and time is in past
+              const hasToday = selectedDates.some(d => d === today);
+              
+              if (hasToday) {
+                if (selectedHour < currentHour || (selectedHour === currentHour && selectedMinute < currentMinute)) {
+                  setError("Cannot select a time in the past for today");
+                  return;
+                }
+              }
+              
+              setStep(3);
+            }}
+            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-colors"
           >
             Review Reservation
           </button>
@@ -159,7 +290,7 @@ export default function ReservationPage() {
 
       {/* Step 3: Confirmation */}
       {step === 3 && (
-        <div className="animate-in slide-in-from-right fade-in duration-300">
+        <div className="animate-in slide-in-from-right fade-in duration-200">
           <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 border border-blue-100">
             <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
               <div>
@@ -173,8 +304,19 @@ export default function ReservationPage() {
 
             <div className="space-y-4 mb-6">
               <div className="flex justify-between">
-                <span className="text-gray-500">Date</span>
-                <span className="font-medium">{new Date(date).toLocaleDateString()}</span>
+                <span className="text-gray-500">Dates</span>
+                <div className="text-right">
+                  {isMultiDay ? (
+                    <div className="flex flex-col items-end">
+                      <span className="font-medium">{selectedDates.length} days selected</span>
+                      <span className="text-xs text-gray-400">
+                        {selectedDates.map(d => new Date(d).toLocaleDateString(undefined, {month:'numeric', day:'numeric'})).join(', ')}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-medium">{new Date(date).toLocaleDateString()}</span>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Time</span>
@@ -186,7 +328,9 @@ export default function ReservationPage() {
               </div>
               <div className="flex justify-between pt-4 border-t border-gray-100">
                 <span className="font-bold text-gray-900">Total</span>
-                <span className="font-bold text-xl text-blue-600">${lot.pricePerHour * duration}</span>
+                <span className="font-bold text-xl text-blue-600">
+                  ${lot.pricePerHour * duration * (isMultiDay ? selectedDates.length : 1)}
+                </span>
               </div>
             </div>
 

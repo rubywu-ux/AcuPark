@@ -101,12 +101,12 @@ export const MOCK_RESERVATIONS: Reservation[] = [
 // Mock Service Functions
 export const MockService = {
   getUser: async (): Promise<User> => {
-    return new Promise((resolve) => setTimeout(() => resolve(MOCK_USER), 500));
+    return new Promise((resolve) => setTimeout(() => resolve(MOCK_USER), 50));
   },
   getLots: async (): Promise<ParkingLot[]> => {
-    return new Promise((resolve) => setTimeout(() => resolve(MOCK_LOTS), 500));
+    return new Promise((resolve) => setTimeout(() => resolve(MOCK_LOTS), 50));
   },
   getReservations: async (): Promise<Reservation[]> => {
-    return new Promise((resolve) => setTimeout(() => resolve(MOCK_RESERVATIONS), 500));
+    return new Promise((resolve) => setTimeout(() => resolve(MOCK_RESERVATIONS), 50));
   },
 };

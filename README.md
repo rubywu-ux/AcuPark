@@ -4,19 +4,26 @@ AcuPark is a modern, mobile-first parking management application built with Next
 
 ## 🌟 Features
 
--   **AI Quick Scan**: Uses the device camera to scan license plates (simulated) for quick entry/exit.
--   **Interactive Map**: View available parking lots and their status in real-time.
--   **Smart Reservations**: Book parking spots in advance with a streamlined flow.
--   **Navigation**: Get directions to your reserved spot.
+-   **AI Quick Scan**: Manual trigger camera scan for license plates (simulated) for quick entry/exit.
+-   **Interactive Map**: Real-time map using Leaflet with CartoDB Voyager tiles.
+    -   **Color-Coded Availability**: Green (Available), Orange (Busy), Red (Full).
+    -   **Smart Filtering**: Filter by "Near Me", "Low Cost", etc.
+    -   **Navigation**: Direct integration with Google Maps for directions.
+-   **Smart Reservations**: 
+    -   Multi-date selection support.
+    -   Smart pricing calculation.
+    -   Validation to prevent booking past dates.
 -   **User Dashboard**: View active reservations and vehicle details.
 
 ## 🛠️ Tech Stack
 
 -   **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
+-   **Language**: TypeScript
 -   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+-   **Map Engine**: [Leaflet](https://leafletjs.com/) & [React-Leaflet](https://react-leaflet.js.org/)
 -   **Icons**: [Lucide React](https://lucide.dev/)
 -   **Camera**: [React Webcam](https://www.npmjs.com/package/react-webcam)
--   **Language**: TypeScript
+-   **Build Tool**: Turbopack (`next dev --turbo`)
 
 ## 🚀 Getting Started
 

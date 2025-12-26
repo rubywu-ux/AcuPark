@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Camera, Scan, AlertCircle } from "lucide-react";
+import { Camera, Scan, AlertCircle, X } from "lucide-react";
 import { MockService, User, Reservation, ParkingLot } from "@/services/mockData";
 import ReservationCard from "@/components/ReservationCard";
 import Link from "next/link";
@@ -14,6 +14,7 @@ export default function Home() {
   const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
   const [reservedLot, setReservedLot] = useState<ParkingLot | null>(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -88,7 +89,26 @@ export default function Home() {
         </h2>
         <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-lg">
           {!scanResult ? (
+            !isCameraActive ? (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 text-white">
+                <button 
+                  onClick={() => setIsCameraActive(true)}
+                  className="flex flex-col items-center justify-center space-y-3 group"
+                >
+                  <div className="bg-blue-600 p-4 rounded-full shadow-lg shadow-blue-900/50 group-hover:scale-110 transition-transform">
+                    <Camera size={32} />
+                  </div>
+                  <span className="font-medium text-sm text-gray-300">Tap to Scan Vehicle</span>
+                </button>
+              </div>
+            ) : (
             <>
+              <button 
+                 onClick={() => setIsCameraActive(false)}
+                 className="absolute top-3 right-3 z-20 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+               >
+                 <X size={20} />
+               </button>
               {cameraError ? (
                 <div className="w-full h-full flex items-center justify-center bg-gray-800 text-white p-4 text-center">
                   <p>{cameraError}</p>
@@ -127,6 +147,7 @@ export default function Home() {
                 </div>
               )}
             </>
+            )
           ) : (
             <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
               <div className="h-16 w-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
