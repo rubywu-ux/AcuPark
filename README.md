@@ -57,6 +57,24 @@ AcuPark is a modern, mobile-first parking management application built with Next
 
 5.  Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### 📱 Testing on Mobile
+
+To test the application on your mobile device:
+
+1.  **Connect to the same Wi-Fi**: Ensure your computer and mobile phone are connected to the same network.
+2.  **Find your Computer's IP Address**:
+    -   **macOS**: Open Terminal and run `ipconfig getifaddr en0`
+    -   **Windows**: Open Command Prompt and run `ipconfig` (look for IPv4 Address)
+3.  **Run the Server**:
+    ```bash
+    npm run dev -- -H 0.0.0.0
+    ```
+4.  **Access on Phone**: Open your mobile browser and navigate to:
+    `http://<YOUR_IP_ADDRESS>:3000`
+    *(Example: http://192.168.1.5:3000)*
+
+> **Note**: Camera features (AI Scan) may be restricted on mobile browsers when using HTTP. For full camera functionality on mobile, you may need to use a tunneling service like `ngrok` to get an HTTPS URL.
+
 ## 📱 Usage
 
 -   **Home**: Grant camera permissions to enable the AI Scan feature.
