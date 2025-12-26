@@ -75,6 +75,25 @@ To test the application on your mobile device:
 
 > **Note**: Camera features (AI Scan) may be restricted on mobile browsers when using HTTP. For full camera functionality on mobile, you may need to use a tunneling service like `ngrok` to get an HTTPS URL.
 
+### 📸 Enabling Camera on Mobile (HTTPS)
+
+iOS and Android block camera access on insecure (HTTP) connections. To test the camera, you need a secure HTTPS tunnel.
+
+**Method 1: Using LocalTunnel (No account required)**
+1.  Start your app normally: `npm run dev`
+2.  In a **new terminal window**, run:
+    ```bash
+    npx localtunnel --port 3000
+    ```
+3.  Copy the URL that looks like `https://heavy-zebra-45.loca.lt`
+4.  Open that URL on your phone.
+    *   *Note: You might see a warning page first. Click "Click to Continue".*
+
+**Method 2: Using Ngrok (More stable)**
+1.  Install ngrok: `brew install ngrok/ngrok/ngrok` (Mac)
+2.  Run: `ngrok http 3000`
+3.  Use the `https://...` URL provided.
+
 ## 📱 Usage
 
 -   **Home**: Grant camera permissions to enable the AI Scan feature.
