@@ -77,7 +77,7 @@ export default function SavedLotsDrawer() {
                     <div className="text-[#502E83] font-semibold text-sm mb-1">Lot</div>
                     <div className="text-[#211F27] text-2xl font-normal">N-06/ C3</div>
                   </div>
-                  <div className="text-[#502E83] text-sm mt-4">Previously visited</div>
+                  <div className="text-[#502E83] text-sm mt-4">Currently Parked</div>
                 </div>
                 
                 {/* Map Placeholder / Icon */}
