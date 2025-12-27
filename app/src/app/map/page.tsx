@@ -123,7 +123,7 @@ export default function MapPage() {
               <h2 className="text-2xl font-bold text-gray-900">{selectedLot.name}</h2>
               <p className="text-gray-500 text-sm mt-1">123 University Way</p>
               <div className="flex items-center gap-2 mt-2">
-                 <TrafficLight size={38} className="text-primary" />
+                 <TrafficLight size="38" className="text-primary" />
                  <span className="text-gray-900 font-bold text-xl">2 Stops</span>
               </div>
             </div>

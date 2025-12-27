@@ -29,7 +29,7 @@ export default function BottomNav() {
                 : "text-gray-400 hover:text-primary hover:bg-gray-50"
             )}
           >
-            <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+            <item.icon size={26} strokeWidth={isActive ? 2.5 : 2} />
             <span className="text-[10px] font-medium mt-1">{item.name}</span>
           </Link>
         );

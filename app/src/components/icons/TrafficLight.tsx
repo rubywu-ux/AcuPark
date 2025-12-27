@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const TrafficLight = ({ size = 24, className = "", ...props }: { size?: number, className?: string } & React.SVGProps<SVGSVGElement>) => {
+export const TrafficLight = ({ size = 24, className = "", ...props }: { size?: number | string, className?: string } & React.SVGProps<SVGSVGElement>) => {
   return (
     <svg 
       xmlns="http://www.w3.org/2000/svg" 
