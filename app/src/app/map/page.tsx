@@ -6,6 +6,7 @@ import { MockService, ParkingLot } from "@/services/mockData";
 import FilterChip from "@/components/FilterChip";
 import SavedLotsDrawer from "@/components/SavedLotsDrawer";
 import { MapPin, Navigation, Calendar, Search, SlidersHorizontal } from "lucide-react";
+import { TrafficLight } from "@/components/icons/TrafficLight";
 import Link from "next/link";
 import { clsx } from "clsx";
 
@@ -116,46 +117,32 @@ export default function MapPage() {
 
       {/* Lot Details Drawer */}
       {selectedLot && (
-        <div className="absolute bottom-24 left-4 right-4 bg-surface rounded-2xl shadow-2xl p-5 z-20 animate-in slide-in-from-bottom-10 fade-in duration-300">
-          <div className="flex justify-between items-start mb-2">
+        <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl p-6 z-30 animate-in slide-in-from-bottom-10 fade-in duration-300 pb-10">
+          <div className="flex justify-between items-start mb-1">
             <div>
-              <h2 className="text-xl font-bold text-text">{selectedLot.name}</h2>
-              <p className="text-text-muted text-sm">{selectedLot.availableSpots} spots available</p>
+              <h2 className="text-2xl font-bold text-gray-900">{selectedLot.name}</h2>
+              <p className="text-gray-500 text-sm mt-1">123 University Way</p>
+              <div className="flex items-center gap-2 mt-2">
+                 <TrafficLight size={38} className="text-primary" />
+                 <span className="text-gray-900 font-bold text-xl">2 Stops</span>
+              </div>
             </div>
-            <button 
-              onClick={() => setSelectedLot(null)}
-              className="text-text-muted hover:text-text"
-            >
-              ✕
-            </button>
+            <div className="flex flex-col items-end">
+               <div className="flex items-baseline gap-1">
+                 <span className="text-[#4ADE80] font-bold text-2xl">6</span>
+                 <span className="text-gray-500 text-sm">min</span>
+               </div>
+               <span className="text-gray-500 text-xs">15.5 km</span>
+            </div>
           </div>
-
-          <div className="flex space-x-2 mb-4">
-            {selectedLot.features.map(f => (
-              <span key={f} className="text-xs bg-gray-100 text-text-muted px-2 py-1 rounded">
-                {f}
-              </span>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <a 
-              href={`https://www.google.com/maps/dir/?api=1&destination=${selectedLot.location.lat},${selectedLot.location.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-text py-3 rounded-xl font-medium transition-colors"
-            >
-              <Navigation size={18} className="mr-2" />
-              Navigate
-            </a>
-            <Link 
-              href={`/reservation?lotId=${selectedLot.id}`}
-              className="flex items-center justify-center bg-primary hover:bg-primary/90 text-white py-3 rounded-xl font-medium transition-colors"
-            >
-              <Calendar size={18} className="mr-2" />
-              Reserve
-            </Link>
-          </div>
+          
+          {/* Close Button */}
+          <button 
+            onClick={() => setSelectedLot(null)}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 p-2"
+          >
+            ✕
+          </button>
         </div>
       )}
 

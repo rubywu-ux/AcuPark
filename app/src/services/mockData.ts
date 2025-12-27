@@ -41,7 +41,7 @@ export interface Reservation {
 // Mock Data
 export const MOCK_USER: User = {
   id: 'user_123',
-  name: 'Alex Student',
+  name: 'Alex Thompson',
   email: 'alex@university.edu',
   role: 'Student',
   vehicle: {

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Navigation, TrafficCone, MapPin } from "lucide-react";
+import { ArrowLeft, Navigation, MapPin } from "lucide-react";
+import { TrafficLight } from "@/components/icons/TrafficLight";
 import { clsx } from "clsx";
 
 export default function NavigationPage() {
@@ -38,12 +39,12 @@ export default function NavigationPage() {
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col relative bg-gray-900 text-white">
+    <main className="flex min-h-screen flex-col relative bg-gray-50 text-gray-900">
       {/* Mock Navigation Map */}
       <div className="absolute inset-0 z-0 opacity-50">
-        <div className="w-full h-full bg-gray-800 relative overflow-hidden">
+        <div className="w-full h-full bg-gray-200 relative overflow-hidden">
            {/* Road */}
-           <div className="absolute left-1/2 top-0 bottom-0 w-16 bg-gray-700 transform -translate-x-1/2">
+           <div className="absolute left-1/2 top-0 bottom-0 w-16 bg-gray-300 transform -translate-x-1/2">
              <div className="absolute left-1/2 top-0 bottom-0 w-1 border-l-2 border-dashed border-yellow-500 transform -translate-x-1/2"></div>
            </div>
            {/* Car */}
@@ -55,42 +56,38 @@ export default function NavigationPage() {
 
       {/* Top HUD */}
       <div className="relative z-10 p-6 flex justify-between items-start">
-        <button onClick={() => router.back()} className="bg-black/40 p-3 rounded-full backdrop-blur-md">
-          <ArrowLeft size={24} />
+        <button onClick={() => router.back()} className="bg-white/80 p-3 rounded-full backdrop-blur-md shadow-sm hover:bg-white transition-colors">
+          <ArrowLeft size={24} className="text-gray-900" />
         </button>
         
         {/* Anxiety Reducer Badge */}
-        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-full border border-green-500/30 flex items-center animate-pulse">
+        <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-full border border-green-200 shadow-sm flex items-center animate-pulse">
           <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-          <span className="font-mono font-bold text-green-400">{availableSpots} Spots Available</span>
+          <span className="font-mono font-bold text-green-700">{availableSpots} Available</span>
         </div>
       </div>
 
       {/* Bottom HUD */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gray-900 p-6 rounded-t-3xl shadow-2xl z-20 border-t border-gray-800">
-        <div className="flex justify-between items-center mb-6">
+      <div className="absolute bottom-0 left-0 right-0 bg-white p-6 rounded-t-3xl shadow-2xl z-20 border-t border-gray-200 pb-10">
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-2xl font-bold">Lot N06</h2>
-            <p className="text-gray-400 text-sm">123 University Way</p>
+            <h2 className="text-2xl font-bold text-gray-900">Lot N06</h2>
+            <p className="text-gray-500 text-sm mt-1">123 University Way</p>
+            <div className="flex items-center gap-2 mt-2">
+               <TrafficLight size={38} className="text-primary" />
+               <span className="text-gray-900 font-bold text-xl">{trafficLights} Stops</span>
+            </div>
           </div>
           <div className="text-right">
-            <div className="text-3xl font-bold text-green-400">{Math.ceil(timeLeft)} <span className="text-sm font-normal text-gray-400">min</span></div>
-            <div className="text-gray-400 text-sm">{distance.toFixed(1)} km</div>
+            <div className="flex items-baseline justify-end gap-1">
+               <span className="text-[#4ADE80] font-bold text-3xl">{Math.ceil(timeLeft)}</span>
+               <span className="text-gray-500 text-sm">min</span>
+            </div>
+            <div className="text-gray-500 text-xs">{distance.toFixed(1)} km</div>
           </div>
         </div>
 
-        <div className="flex space-x-4 mb-6">
-          <div className="bg-gray-800 p-3 rounded-xl flex-1 flex items-center justify-center">
-            <TrafficCone size={20} className="text-orange-500 mr-2" />
-            <span className="font-medium">{trafficLights} Lights</span>
-          </div>
-          <div className="bg-gray-800 p-3 rounded-xl flex-1 flex items-center justify-center">
-            <Navigation size={20} className="text-blue-500 mr-2" />
-            <span className="font-medium">Fastest Route</span>
-          </div>
-        </div>
-
-        <button className="w-full bg-red-500/20 text-red-400 font-bold py-4 rounded-xl hover:bg-red-500/30 transition-colors">
+        <button className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-4 rounded-2xl transition-colors border border-red-500/20">
           End Navigation
         </button>
       </div>

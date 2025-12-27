@@ -8,6 +8,24 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        primary: {
+          DEFAULT: "#502E83", // Deep Purple from Figma (Rectangle 1)
+          light: "#6B4C9A",
+          dark: "#3A2160",
+        },
+        secondary: {
+          DEFAULT: "#FFC700", // Yellow from CTA
+        },
+        surface: {
+          DEFAULT: "#FFFFFF",
+          dark: "#121212",
+        },
+        text: {
+          primary: "#211F27", // Dark text
+          secondary: "#929292", // Gray text
+        }
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":

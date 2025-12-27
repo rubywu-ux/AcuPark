@@ -1,10 +1,14 @@
-import React, { forwardRef } from 'react';
+"use client";
+
+import React from 'react';
 import Webcam, { WebcamProps } from 'react-webcam';
 
-const WebcamWrapper = forwardRef<Webcam, WebcamProps>((props, ref) => {
-  return <Webcam ref={ref} {...props} />;
-});
+interface WebcamWrapperProps extends WebcamProps {
+  webcamRef?: React.Ref<Webcam>;
+}
 
-WebcamWrapper.displayName = 'WebcamWrapper';
+const WebcamWrapper = ({ webcamRef, ...props }: WebcamWrapperProps) => {
+  return <Webcam ref={webcamRef} {...props} />;
+};
 
 export default WebcamWrapper;

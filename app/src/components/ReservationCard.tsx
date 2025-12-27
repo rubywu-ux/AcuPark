@@ -21,8 +21,8 @@ export default function ReservationCard({ reservation, lot }: ReservationCardPro
     <div className="bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">{lot.name}</h3>
-          <p className="text-gray-500 text-sm flex items-center mt-1">
+          <h3 className="text-lg font-bold text-text">{lot.name}</h3>
+          <p className="text-text-muted text-sm flex items-center mt-1">
             <MapPin size={14} className="mr-1" /> Spot {reservation.spotId}
           </p>
         </div>
@@ -31,8 +31,8 @@ export default function ReservationCard({ reservation, lot }: ReservationCardPro
         </div>
       </div>
 
-      <div className="flex items-center text-gray-700 mb-6 bg-gray-50 p-3 rounded-lg">
-        <Clock size={18} className="mr-3 text-blue-600" />
+      <div className="flex items-center text-text mb-6 bg-primary/5 p-3 rounded-lg">
+        <Clock size={18} className="mr-3 text-primary" />
         <span className="font-medium">
           {startTime} - {endTime}
         </span>
@@ -40,7 +40,7 @@ export default function ReservationCard({ reservation, lot }: ReservationCardPro
 
       <Link
         href={`/navigation?reservationId=${reservation.id}`}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center transition-colors"
+        className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center transition-colors"
       >
         <Navigation size={18} className="mr-2" />
         Take Me There

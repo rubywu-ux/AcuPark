@@ -68,7 +68,7 @@ export default function ReservationPage() {
                 className={clsx(
                   "aspect-square rounded-lg flex items-center justify-center text-sm font-bold transition-all",
                   spot.isOccupied ? "bg-gray-200 text-gray-400 cursor-not-allowed" : 
-                  isSelected ? "bg-blue-600 text-white shadow-lg scale-105" : "bg-green-100 text-green-800 hover:bg-green-200"
+                  isSelected ? "bg-primary text-white shadow-lg scale-105" : "bg-secondary/20 text-primary hover:bg-secondary/30"
                 )}
               >
                 {spot.id}
@@ -102,15 +102,15 @@ export default function ReservationPage() {
           {renderSpotGrid()}
 
           <div className="flex justify-between text-xs text-gray-500 px-4 mb-8">
-            <div className="flex items-center"><div className="w-3 h-3 bg-green-100 rounded mr-2"></div> Available</div>
+            <div className="flex items-center"><div className="w-3 h-3 bg-secondary/20 rounded mr-2"></div> Available</div>
             <div className="flex items-center"><div className="w-3 h-3 bg-gray-200 rounded mr-2"></div> Occupied</div>
-            <div className="flex items-center"><div className="w-3 h-3 bg-blue-600 rounded mr-2"></div> Selected</div>
+            <div className="flex items-center"><div className="w-3 h-3 bg-primary rounded mr-2"></div> Selected</div>
           </div>
 
           <button
             disabled={!selectedSpot}
             onClick={() => setStep(2)}
-            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-colors"
+            className="w-full bg-primary disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-colors"
           >
             Continue
           </button>
@@ -128,7 +128,7 @@ export default function ReservationPage() {
                 onClick={() => setIsMultiDay(false)}
                 className={clsx(
                   "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                  !isMultiDay ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"
+                  !isMultiDay ? "bg-white shadow text-primary" : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 Single Day
@@ -137,7 +137,7 @@ export default function ReservationPage() {
                 onClick={() => setIsMultiDay(true)}
                 className={clsx(
                   "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                  isMultiDay ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"
+                  isMultiDay ? "bg-white shadow text-primary" : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 Multiple Dates
@@ -160,7 +160,7 @@ export default function ReservationPage() {
                     setSelectedDates([e.target.value]);
                     setError(null);
                   }}
-                  className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary"
                 />
               ) : (
                 <div className="space-y-3">
@@ -169,7 +169,7 @@ export default function ReservationPage() {
                       type="date" 
                       min={today}
                       id="multi-date-input"
-                      className="flex-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary"
                     />
                     <button 
                       onClick={() => {
@@ -188,7 +188,7 @@ export default function ReservationPage() {
                           }
                         }
                       }}
-                      className="bg-blue-100 text-blue-600 px-4 rounded-xl font-medium hover:bg-blue-200"
+                      className="bg-primary/10 text-primary px-4 rounded-xl font-medium hover:bg-primary/20"
                     >
                       Add
                     </button>
@@ -197,7 +197,7 @@ export default function ReservationPage() {
                   {selectedDates.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {selectedDates.map(d => (
-                        <div key={d} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center">
+                        <div key={d} className="bg-primary/5 text-primary px-3 py-1 rounded-full text-sm flex items-center">
                           {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           <button 
                             onClick={() => {
@@ -205,7 +205,7 @@ export default function ReservationPage() {
                               setSelectedDates(newDates);
                               if (newDates.length > 0) setDate(newDates[0]);
                             }}
-                            className="ml-2 text-blue-400 hover:text-blue-600"
+                            className="ml-2 text-primary/60 hover:text-primary"
                           >
                             ×
                           </button>
@@ -231,7 +231,7 @@ export default function ReservationPage() {
                   setTime(e.target.value);
                   setError(null);
                 }}
-                className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -244,7 +244,7 @@ export default function ReservationPage() {
                     onClick={() => setDuration(h)}
                     className={clsx(
                       "flex-1 py-2 rounded-lg text-sm font-medium transition-colors",
-                      duration === h ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-600"
+                      duration === h ? "bg-primary text-white" : "bg-gray-100 text-gray-600"
                     )}
                   >
                     {h}h
@@ -281,7 +281,7 @@ export default function ReservationPage() {
               
               setStep(3);
             }}
-            className="w-full bg-blue-600 disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-colors"
+            className="w-full bg-primary disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-colors"
           >
             Review Reservation
           </button>
@@ -291,14 +291,14 @@ export default function ReservationPage() {
       {/* Step 3: Confirmation */}
       {step === 3 && (
         <div className="animate-in slide-in-from-right fade-in duration-200">
-          <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 border border-blue-100">
+          <div className="bg-white p-6 rounded-2xl shadow-lg mb-6 border border-primary/10">
             <div className="flex items-center justify-between mb-6 border-b border-gray-100 pb-4">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{lot.name}</h2>
-                <p className="text-blue-600 font-medium">Spot {selectedSpot}</p>
+                <p className="text-primary font-medium">Spot {selectedSpot}</p>
               </div>
-              <div className="h-12 w-12 bg-blue-50 rounded-full flex items-center justify-center">
-                <MapPin size={24} className="text-blue-600" />
+              <div className="h-12 w-12 bg-primary/5 rounded-full flex items-center justify-center">
+                <MapPin size={24} className="text-primary" />
               </div>
             </div>
 
@@ -328,7 +328,7 @@ export default function ReservationPage() {
               </div>
               <div className="flex justify-between pt-4 border-t border-gray-100">
                 <span className="font-bold text-gray-900">Total</span>
-                <span className="font-bold text-xl text-blue-600">
+                <span className="font-bold text-xl text-primary">
                   ${lot.pricePerHour * duration * (isMultiDay ? selectedDates.length : 1)}
                 </span>
               </div>
@@ -341,7 +341,7 @@ export default function ReservationPage() {
 
           <Link
             href="/"
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-green-200"
+            className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-xl flex items-center justify-center transition-colors shadow-lg shadow-primary/20"
           >
             <CheckCircle size={20} className="mr-2" />
             Confirm Reservation

@@ -34,6 +34,22 @@ const createCustomIcon = (status: string) => {
   });
 };
 
+// Custom User Location Icon (Pulsing Blue Dot)
+const createUserIcon = () => {
+  return L.divIcon({
+    className: "user-marker",
+    html: `
+      <div class="relative flex items-center justify-center w-8 h-8">
+        <div class="absolute w-full h-full bg-blue-500 rounded-full opacity-30 animate-ping"></div>
+        <div class="relative w-4 h-4 bg-blue-600 border-2 border-white rounded-full shadow-lg"></div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -10],
+  });
+};
+
 interface MapProps {
   lots: ParkingLot[];
   selectedLot: ParkingLot | null;
@@ -64,6 +80,17 @@ export default function Map({ lots, selectedLot, onLotSelect }: MapProps) {
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
       />
       
+      {/* User Location Marker (Simulated for Demo) */}
+      <Marker 
+        position={[47.6540, -122.3040]} 
+        icon={createUserIcon()}
+        zIndexOffset={1000}
+      >
+        <Popup closeButton={false} className="font-semibold text-xs text-center">
+          You are here
+        </Popup>
+      </Marker>
+
       {lots.map((lot) => (
         <Marker
           key={lot.id}
