@@ -9,6 +9,7 @@ AcuPark is a modern, mobile-first parking management application built with Next
     -   **Color-Coded Availability**: Green (Available), Orange (Busy), Red (Full).
     -   **Smart Filtering**: Filter by "Near Me", "Low Cost", etc.
     -   **Navigation**: Direct integration with Google Maps for directions.
+    -   **Saved Lots Drawer**: Slide-up drawer to quickly access "Recents" and "Favorites" parking locations.
 -   **Smart Reservations**: 
     -   Multi-date selection support.
     -   Smart pricing calculation.

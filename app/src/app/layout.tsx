@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "AcuPark",
@@ -24,7 +25,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans bg-gray-50 text-gray-900 pb-24`}>
         {children}
-        <BottomNav />
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
       </body>
     </html>
   );
