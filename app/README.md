@@ -5,7 +5,7 @@ Mobile-first campus parking web app.
 ## Features
 - **AI Quick Scan**: Use camera to scan parking lots.
 - **Real-time Map**: Find available spots.
-- **Reservations**: Book spots in advance.
+- **Reservations**: Book spots in advance with an enhanced "Smart Zoom" timeline for precise time selection.
 - **Smart Navigation**: Route guidance with "Anxiety Reducer".
 - **Profile**: Manage vehicle and payment methods.
 

@@ -99,7 +99,7 @@ export default function NavigationPage() {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MapPin size={40} className="text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">You've Arrived!</h2>
+            <h2 className="text-2xl font-bold mb-2">You&apos;ve Arrived!</h2>
             <p className="text-gray-500 mb-6">Please confirm your spot to process payment.</p>
             
             <div className="space-y-3">

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { MockService, ParkingLot } from "@/services/mockData";
-import { ArrowLeft, Calendar, Clock, CreditCard, CheckCircle, MapPin } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, CreditCard, CheckCircle, MapPin } from "lucide-react";
 import Link from "next/link";
 import { clsx } from "clsx";
+import Calendar from "@/components/Calendar";
+import CustomTimePicker from "@/components/CustomTimePicker";
 
-export default function ReservationPage() {
+function ReservationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const lotId = searchParams.get("lotId");
@@ -15,14 +17,23 @@ export default function ReservationPage() {
   const [step, setStep] = useState(1);
   const [lot, setLot] = useState<ParkingLot | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<string | null>(null);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedDates, setSelectedDates] = useState<string[]>([new Date().toISOString().split('T')[0]]);
-  const [isMultiDay, setIsMultiDay] = useState(false);
   const [time, setTime] = useState("13:00");
   const [duration, setDuration] = useState(1);
   const [error, setError] = useState<string | null>(null);
   
   const today = new Date().toISOString().split('T')[0];
+  
+  // Generate time slots
+  const timeSlots = [];
+  for (let i = 6; i <= 22; i++) {
+    const hour = i;
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    const timeString = `${hour.toString().padStart(2, '0')}:00`;
+    const label = `${displayHour}:00 ${ampm}`;
+    timeSlots.push({ value: timeString, label });
+  }
   
   // Stable spot data
   const [spots, setSpots] = useState<{id: string, isOccupied: boolean}[]>([]);
@@ -122,101 +133,44 @@ export default function ReservationPage() {
         <div className="animate-in slide-in-from-right fade-in duration-200">
           <div className="bg-white p-6 rounded-2xl shadow-sm mb-6 space-y-6">
             
-            {/* Date Mode Toggle */}
-            <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
-              <button
-                onClick={() => setIsMultiDay(false)}
-                className={clsx(
-                  "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                  !isMultiDay ? "bg-white shadow text-primary" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Single Day
-              </button>
-              <button
-                onClick={() => setIsMultiDay(true)}
-                className={clsx(
-                  "flex-1 py-2 text-sm font-medium rounded-lg transition-all",
-                  isMultiDay ? "bg-white shadow text-primary" : "text-gray-500 hover:text-gray-700"
-                )}
-              >
-                Multiple Dates
-              </button>
-            </div>
-
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                <Calendar size={16} className="mr-2" /> 
-                {isMultiDay ? "Select Dates" : "Date"}
+              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-center">
+                <CalendarIcon size={16} className="mr-2" /> 
+                Select Dates
               </label>
               
-              {!isMultiDay ? (
-                <input 
-                  type="date" 
-                  min={today}
-                  value={date}
-                  onChange={(e) => {
-                    setDate(e.target.value);
-                    setSelectedDates([e.target.value]);
-                    setError(null);
-                  }}
-                  className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary"
-                />
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input 
-                      type="date" 
-                      min={today}
-                      id="multi-date-input"
-                      className="flex-1 p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary"
-                    />
-                    <button 
-                      onClick={() => {
-                        const input = document.getElementById('multi-date-input') as HTMLInputElement;
-                        if (input.value) {
-                          if (input.value < today) {
-                            setError("Cannot select past dates");
-                            return;
-                          }
-                          if (!selectedDates.includes(input.value)) {
-                            const newDates = [...selectedDates, input.value].sort();
-                            setSelectedDates(newDates);
-                            setDate(newDates[0]); // Keep primary date as first selected
-                            input.value = '';
-                            setError(null);
-                          }
-                        }
-                      }}
-                      className="bg-primary/10 text-primary px-4 rounded-xl font-medium hover:bg-primary/20"
-                    >
-                      Add
-                    </button>
+              <Calendar 
+                selectedDates={selectedDates}
+                minDate={today}
+                onDateSelect={(dateStr) => {
+                  if (selectedDates.includes(dateStr)) {
+                    setSelectedDates(selectedDates.filter(d => d !== dateStr));
+                  } else {
+                    setSelectedDates([...selectedDates, dateStr].sort());
+                  }
+                  setError(null);
+                }}
+              />
+              
+              {selectedDates.length > 0 ? (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-500 mb-2">Selected Dates:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDates.map(d => (
+                      <div key={d} className="bg-primary/5 text-primary px-3 py-1 rounded-full text-sm flex items-center">
+                        {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        <button 
+                          onClick={() => setSelectedDates(selectedDates.filter(date => date !== d))}
+                          className="ml-2 text-primary/60 hover:text-primary"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  
-                  {selectedDates.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedDates.map(d => (
-                        <div key={d} className="bg-primary/5 text-primary px-3 py-1 rounded-full text-sm flex items-center">
-                          {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                          <button 
-                            onClick={() => {
-                              const newDates = selectedDates.filter(date => date !== d);
-                              setSelectedDates(newDates);
-                              if (newDates.length > 0) setDate(newDates[0]);
-                            }}
-                            className="ml-2 text-primary/60 hover:text-primary"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {selectedDates.length === 0 && (
-                    <p className="text-sm text-red-500">Please select at least one date.</p>
-                  )}
                 </div>
+              ) : (
+                <p className="text-sm text-red-500 mt-2 text-center">Please select at least one date.</p>
               )}
             </div>
 
@@ -224,14 +178,13 @@ export default function ReservationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                 <Clock size={16} className="mr-2" /> Start Time
               </label>
-              <input 
-                type="time" 
+              <CustomTimePicker
                 value={time}
-                onChange={(e) => {
-                  setTime(e.target.value);
+                duration={duration}
+                onChange={(newTime) => {
+                  setTime(newTime);
                   setError(null);
                 }}
-                className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -261,7 +214,7 @@ export default function ReservationPage() {
           )}
 
           <button
-            disabled={isMultiDay && selectedDates.length === 0}
+            disabled={selectedDates.length === 0}
             onClick={() => {
               // Validate time if date is today
               const now = new Date();
@@ -306,16 +259,12 @@ export default function ReservationPage() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Dates</span>
                 <div className="text-right">
-                  {isMultiDay ? (
-                    <div className="flex flex-col items-end">
-                      <span className="font-medium">{selectedDates.length} days selected</span>
-                      <span className="text-xs text-gray-400">
-                        {selectedDates.map(d => new Date(d).toLocaleDateString(undefined, {month:'numeric', day:'numeric'})).join(', ')}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="font-medium">{new Date(date).toLocaleDateString()}</span>
-                  )}
+                  <div className="flex flex-col items-end">
+                    <span className="font-medium">{selectedDates.length} day{selectedDates.length > 1 ? 's' : ''} selected</span>
+                    <span className="text-xs text-gray-400">
+                      {selectedDates.map(d => new Date(d).toLocaleDateString(undefined, {month:'numeric', day:'numeric'})).join(', ')}
+                    </span>
+                  </div>
                 </div>
               </div>
               <div className="flex justify-between">
@@ -329,7 +278,7 @@ export default function ReservationPage() {
               <div className="flex justify-between pt-4 border-t border-gray-100">
                 <span className="font-bold text-gray-900">Total</span>
                 <span className="font-bold text-xl text-primary">
-                  ${lot.pricePerHour * duration * (isMultiDay ? selectedDates.length : 1)}
+                  ${lot.pricePerHour * duration * selectedDates.length}
                 </span>
               </div>
             </div>
@@ -349,5 +298,13 @@ export default function ReservationPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function ReservationPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+      <ReservationContent />
+    </Suspense>
   );
 }
