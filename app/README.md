@@ -29,11 +29,8 @@ This app is optimized for mobile portrait mode. Use your browser's developer too
 
 ## Screenshots
 
-<div style="display: flex; gap: 10px; overflow-x: auto;">
-  <img src="public/screenshots/home.png" alt="Home Screen" width="200" />
-  <img src="public/screenshots/reservation.png" alt="Reservation Page with Smart Zoom" width="200" />
-  <img src="public/screenshots/map.png" alt="Real-time Map" width="200" />
-  <img src="public/screenshots/navigation.png" alt="Smart Navigation" width="200" />
-</div>
+| Home Screen | Reservation | Real-time Map | Navigation |
+|:---:|:---:|:---:|:---:|
+| <img src="public/screenshots/home.png" width="180" /> | <img src="public/screenshots/reservation.png" width="180" /> | <img src="public/screenshots/map.png" width="180" /> | <img src="public/screenshots/navigation.png" width="180" /> |
 
 > **Note:** Please add screenshots to `public/screenshots/` named `home.png`, `reservation.png`, `map.png`, and `navigation.png`.
