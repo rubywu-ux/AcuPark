@@ -13,7 +13,9 @@ Mobile-first campus parking web app.
 
 1.  Install dependencies:
     ```bash
+    # Optional: Run this only if you encounter SSL certificate errors
     npm config set strict-ssl false
+    
     npm install
     ```
 
