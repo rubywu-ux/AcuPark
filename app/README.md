@@ -26,3 +26,14 @@ Mobile-first campus parking web app.
 
 ## Mobile View
 This app is optimized for mobile portrait mode. Use your browser's developer tools to simulate a mobile device (e.g., iPhone 12/14 Pro).
+
+## Screenshots
+
+<div style="display: flex; gap: 10px; overflow-x: auto;">
+  <img src="/screenshots/home.png" alt="Home Screen" width="200" />
+  <img src="/screenshots/reservation.png" alt="Reservation Page with Smart Zoom" width="200" />
+  <img src="/screenshots/map.png" alt="Real-time Map" width="200" />
+  <img src="/screenshots/navigation.png" alt="Smart Navigation" width="200" />
+</div>
+
+> **Note:** Please add screenshots to `public/screenshots/` named `home.png`, `reservation.png`, `map.png`, and `navigation.png`.
