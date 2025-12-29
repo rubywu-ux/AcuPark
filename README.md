@@ -16,11 +16,18 @@ AcuPark is a modern, mobile-first parking management application built with Next
     -   Validation to prevent booking past dates.
 -   **User Dashboard**: View active reservations and vehicle details.
 
+## 🎨 Figma Integration (MCP)
+
+This project uses the **Model Context Protocol (MCP)** to connect directly to Figma. This allows the AI to read design properties (layout, colors, typography) and generate code that matches the design files 1:1.
+
+-   **[How to use Figma MCP](./docs/technical/FIGMA_MCP_USAGE.md)**: Detailed guide on setup and usage.
+-   **[Understanding MCP](./docs/technical/MCP_EXPLAINED.md)**: Conceptual overview of how MCP works.
+
 ## 📱 Screenshots
 
-| Home Screen | Reservation | Real-time Map | Navigation |
-|:---:|:---:|:---:|:---:|
-| <img src="app/public/screenshots/home.png" width="180" /> | <img src="app/public/screenshots/reservation.png" width="180" /> | <img src="app/public/screenshots/map.png" width="180" /> | <img src="app/public/screenshots/navigation.png" width="180" /> |
+| Home Screen | AI Scan | Reservation | Real-time Map | Navigation | Payment |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| <img src="app/public/screenshots/home.png" width="180" /> | <img src="app/public/screenshots/scan.png" width="180" /> | <img src="app/public/screenshots/reservation.png" width="180" /> | <img src="app/public/screenshots/map.png" width="180" /> | <img src="app/public/screenshots/navigation.png" width="180" /> | <img src="app/public/screenshots/payment.png" width="180" /> |
 
 ## 🛠️ Tech Stack
 
