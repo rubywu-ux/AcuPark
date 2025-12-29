@@ -35,22 +35,25 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
   }
 
   // Generate time slots based on current meridiem (12 hours only)
-  const timeSlots = [];
-  const startHour = currentMeridiem === 'AM' ? 0 : 12;
-  
-  for (let i = 0; i < 12; i++) {
-    const hour = startHour + i;
-    for (let min = 0; min < 60; min += 30) {
-      const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-      
-      timeSlots.push({
-        value: timeString,
-        hour: hour,
-        minute: min,
-        displayHour: hour % 12 || 12
-      });
+  const timeSlots = React.useMemo(() => {
+    const slots = [];
+    const startHour = currentMeridiem === 'AM' ? 0 : 12;
+    
+    for (let i = 0; i < 12; i++) {
+      const hour = startHour + i;
+      for (let min = 0; min < 60; min += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+        
+        slots.push({
+          value: timeString,
+          hour: hour,
+          minute: min,
+          displayHour: hour % 12 || 12
+        });
+      }
     }
-  }
+    return slots;
+  }, [currentMeridiem]);
 
   // Handle AM/PM Toggle
   const toggleMeridiem = (newMeridiem: 'AM' | 'PM') => {
@@ -113,7 +116,7 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
       }
       prevSlotWidthRef.current = slotWidth;
     }
-  }, [value, currentMeridiem, slotWidth]);
+  }, [value, currentMeridiem, slotWidth, timeSlots]);
 
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;

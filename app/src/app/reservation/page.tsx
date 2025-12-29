@@ -153,7 +153,7 @@ function ReservationContent() {
 
         {filteredSpots.length === 0 ? (
           <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-            No spots found matching "{searchQuery}"
+            No spots found matching &quot;{searchQuery}&quot;
           </div>
         ) : (
           <div className={`grid ${gridCols} gap-3 mb-4`}>
