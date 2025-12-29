@@ -29,8 +29,8 @@ This app is optimized for mobile portrait mode. Use your browser's developer too
 
 ## Screenshots
 
-| Home Screen | Reservation | Real-time Map | Navigation | Payment |
-|:---:|:---:|:---:|:---:|:---:|
-| <img src="public/screenshots/home.png" width="180" /> | <img src="public/screenshots/reservation.png" width="180" /> | <img src="public/screenshots/map.png" width="180" /> | <img src="public/screenshots/navigation.png" width="180" /> | <img src="public/screenshots/payment.png" width="180" /> |
+| Home Screen | AI Scan | Reservation | Real-time Map | Navigation | Payment |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| <img src="public/screenshots/home.png" width="180" /> | <img src="public/screenshots/scan.png" width="180" /> | <img src="public/screenshots/reservation.png" width="180" /> | <img src="public/screenshots/map.png" width="180" /> | <img src="public/screenshots/navigation.png" width="180" /> | <img src="public/screenshots/payment.png" width="180" /> |
 
-> **Note:** Please add screenshots to `public/screenshots/` named `home.png`, `reservation.png`, `map.png`, `navigation.png`, and `payment.png`.
+> **Note:** Please add screenshots to `public/screenshots/` named `home.png`, `scan.png`, `reservation.png`, `map.png`, `navigation.png`, and `payment.png`.
