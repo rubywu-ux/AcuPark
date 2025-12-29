@@ -23,6 +23,12 @@ This project uses the **Model Context Protocol (MCP)** to connect directly to Fi
 -   **[How to use Figma MCP](./docs/technical/FIGMA_MCP_USAGE.md)**: Detailed guide on setup and usage.
 -   **[Understanding MCP](./docs/technical/MCP_EXPLAINED.md)**: Conceptual overview of how MCP works.
 
+## ✨ Vibe Coding with GitHub Copilot
+
+This project was built using the **"Vibe Coding"** methodology—a flow-state driven development process where the developer focuses on intent and design, while GitHub Copilot handles implementation.
+
+-   **[Read the Vibe Coding Guide](./docs/technical/VIBE_CODING.md)**: Learn how we used iterative prompting, the "Master Prompt", and AI-driven refactoring to build AcuPark.
+
 ## 📱 Screenshots
 
 | Home Screen | AI Scan | Reservation | Real-time Map | Navigation | Payment |
