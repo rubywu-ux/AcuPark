@@ -16,7 +16,13 @@ AcuPark is a modern, mobile-first parking management application built with Next
     -   Validation to prevent booking past dates.
 -   **User Dashboard**: View active reservations and vehicle details.
 
-## 🛠️ Tech Stack
+## � Screenshots
+
+| Home Screen | Reservation | Real-time Map | Navigation |
+|:---:|:---:|:---:|:---:|
+| <img src="app/public/screenshots/home.png" width="180" /> | <img src="app/public/screenshots/reservation.png" width="180" /> | <img src="app/public/screenshots/map.png" width="180" /> | <img src="app/public/screenshots/navigation.png" width="180" /> |
+
+## �🛠️ Tech Stack
 
 -   **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
 -   **Language**: TypeScript
