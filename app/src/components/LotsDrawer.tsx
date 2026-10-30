@@ -270,12 +270,12 @@ export default function LotsDrawer({
             ) : (
               <p className="flex items-center gap-3 text-[14px] font-medium text-white/70 tabular">
                 <span className="inline-flex items-center gap-[3px]" aria-label={`${recents.length} recent`}>
-                  <History size={15} aria-hidden />
                   {recents.length}
+                  <History size={15} aria-hidden />
                 </span>
                 <span className="inline-flex items-center gap-[3px]" aria-label={`${favorites.length} saved`}>
-                  <Heart size={14} className="fill-accent text-accent" aria-hidden />
                   {favorites.length}
+                  <Heart size={14} className="fill-accent text-accent" aria-hidden />
                 </span>
               </p>
             )}
