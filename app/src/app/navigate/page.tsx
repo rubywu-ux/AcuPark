@@ -4,9 +4,9 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { ArrowUp, CornerUpLeft, CornerUpRight, ExternalLink, MapPin, ScanLine, X } from "lucide-react";
+import { ArrowUp, BadgeCheck, CornerUpLeft, CornerUpRight, ExternalLink, MapPin, ScanLine, X } from "lucide-react";
 import { TrafficLight } from "@/components/icons/TrafficLight";
-import { Button, IconButton } from "@/components/ui";
+import { Button, IconButton, useNotify } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import {
   LatLng,
@@ -16,6 +16,7 @@ import {
   buildRoute,
   distanceKm,
   driveMinutes,
+  formatMoney,
   formatTime,
   getLot,
   routeLengthKm,
@@ -53,7 +54,9 @@ function along(route: LatLng[], t: number) {
 function NavigateScreen() {
   const params = useSearchParams();
   const router = useRouter();
-  const { reservations } = useStore();
+  const { reservations, autoPay, runAutoPay } = useStore();
+  const notify = useNotify();
+  const [paidSession, setPaidSession] = useState<{ id: string; spotId: string; amount: number; endsAt: string } | null>(null);
   const reservation = reservations.find((r) => r.id === params.get("res"));
   const lot = getLot(reservation?.lotId ?? params.get("lot"));
 
@@ -96,6 +99,21 @@ function NavigateScreen() {
     }, 3500);
     return () => clearInterval(iv);
   }, [phase, initialOpen]);
+
+  // Pay ahead: arriving with auto-pay armed pays straight away and notifies, no scan needed.
+  const autoPaidRef = useRef(false);
+  useEffect(() => {
+    if (phase !== "arrived" || !autoPay || !lot || autoPaidRef.current) return;
+    autoPaidRef.current = true;
+    const s = runAutoPay({ lotId: lot.id, reservationId: reservation?.id });
+    if (!s) return;
+    setPaidSession(s);
+    notify({
+      title: "All set, parking paid!",
+      body: `${lot.name} · stall ${s.spotId} · ${formatMoney(s.amount)} until ${formatTime(s.endsAt)}.`,
+      href: `/success?s=${s.id}&review=1`,
+    });
+  }, [phase, autoPay, lot, reservation?.id, runAutoPay, notify]);
 
   if (!lot) {
     return (
@@ -186,7 +204,24 @@ function NavigateScreen() {
       <section className="absolute bottom-0 inset-x-0 z-[1000] bg-card rounded-t-[28px] shadow-sheet px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] animate-sheet-up">
         <div className="mx-auto h-1 w-10 rounded-full bg-line mb-4" />
 
-        {phase === "arrived" ? (
+        {phase === "arrived" && paidSession ? (
+          <div className="text-center animate-fade-up">
+            <div className="mx-auto w-16 h-16 rounded-full bg-success/15 text-success grid place-items-center mb-3">
+              <BadgeCheck size={30} />
+            </div>
+            <h2 className="text-[24px] font-semibold">All set, parking paid!</h2>
+            <p className="text-muted text-[15px] mt-1 mb-5">
+              Auto-pay found {lot.name}, stall {paidSession.spotId} — {formatMoney(paidSession.amount)} until{" "}
+              {formatTime(paidSession.endsAt)}.
+            </p>
+            <Button block href={`/success?s=${paidSession.id}&review=1`}>
+              Review payment
+            </Button>
+            <Button block variant="ghost" size="md" className="mt-1" href="/">
+              Done
+            </Button>
+          </div>
+        ) : phase === "arrived" ? (
           <div className="text-center animate-fade-up">
             <div className="mx-auto w-16 h-16 rounded-full bg-success/15 text-success grid place-items-center mb-3">
               <MapPin size={30} />

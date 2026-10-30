@@ -16,6 +16,13 @@ const lotIcon = (lot: ParkingLot, selected: boolean) => {
   });
 };
 
+const destIcon = (label: string) =>
+  L.divIcon({
+    className: "",
+    html: `<div class="dest-pin"><span>${label.replace(/[<>&]/g, "")}</span></div>`,
+    iconSize: [0, 0],
+  });
+
 const userIcon = L.divIcon({ className: "", html: `<div class="user-dot"></div>`, iconSize: [0, 0] });
 
 const carIcon = (heading: number) =>
@@ -43,6 +50,20 @@ function FitRoute({ route, padBottom }: { route: LatLng[]; padBottom: number }) 
   return null;
 }
 
+/** Frame a set of points (a searched place and its nearest lots) above the bottom sheet. */
+function FitPoints({ points, padBottom }: { points: LatLng[]; padBottom: number }) {
+  const map = useMap();
+  const key = points.map((p) => p.join()).join("|");
+  useEffect(() => {
+    if (points.length > 1) {
+      map.flyToBounds(L.latLngBounds(points), { paddingTopLeft: [48, 150], paddingBottomRight: [48, padBottom], duration: 0.6, maxZoom: 17 });
+    }
+    // Refit only when the set of points changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, key]);
+  return null;
+}
+
 interface MapViewProps {
   lots?: ParkingLot[];
   selectedId?: string | null;
@@ -51,10 +72,25 @@ interface MapViewProps {
   route?: LatLng[];
   traveled?: LatLng[];
   car?: { at: LatLng; heading: number };
+  /** A searched campus place, drawn as a labelled pin. */
+  destination?: { at: LatLng; label: string };
+  /** When set, the map frames these points instead of flying to `focus`. */
+  fitPoints?: LatLng[];
   padBottom?: number;
 }
 
-export default function MapView({ lots = [], selectedId, onSelect, focus, route, traveled, car, padBottom = 280 }: MapViewProps) {
+export default function MapView({
+  lots = [],
+  selectedId,
+  onSelect,
+  focus,
+  route,
+  traveled,
+  car,
+  destination,
+  fitPoints,
+  padBottom = 280,
+}: MapViewProps) {
   const icons = useMemo(
     () => Object.fromEntries(lots.map((l) => [l.id, lotIcon(l, l.id === selectedId)])),
     [lots, selectedId]
@@ -103,7 +139,11 @@ export default function MapView({ lots = [], selectedId, onSelect, focus, route,
         <Marker position={car.at} icon={carIcon(car.heading)} zIndexOffset={2000} interactive={false} />
       )}
 
-      <FlyTo center={focus} zoom={16} />
+      {destination && (
+        <Marker position={destination.at} icon={destIcon(destination.label)} zIndexOffset={-500} interactive={false} />
+      )}
+
+      {fitPoints ? <FitPoints points={fitPoints} padBottom={padBottom} /> : <FlyTo center={focus} zoom={16} />}
     </MapContainer>
   );
 }

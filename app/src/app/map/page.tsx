@@ -1,14 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { CalendarClock, ChevronUp, Clock, Heart, LocateFixed, MapPin, Navigation, SlidersHorizontal, X } from "lucide-react";
+import { CalendarClock, Clock, Heart, LocateFixed, MapPin, Navigation, SlidersHorizontal, X } from "lucide-react";
 import LotSearch from "@/components/LotSearch";
+import LotsDrawer from "@/components/LotsDrawer";
 import { Button, Chip, IconButton, StatusPill } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import {
+  CampusPlace,
   CITY_LABEL,
   FILTERS,
   LOTS,
@@ -16,13 +18,16 @@ import {
   ParkingLot,
   USER_LOCATION,
   availabilityAt,
+  displayTitle,
   distanceKm,
   driveMinutes,
   formatMoney,
   getLot,
+  getPlace,
   rateFor,
   signCode,
   statusFor,
+  walkMinutes,
 } from "@/services/mockData";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -33,6 +38,16 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 const NEAR_KM = 1.1;
 /** Centre slightly south of the lot so its pin sits above the bottom sheet. */
 const aboveSheet = (lot: ParkingLot): [number, number] => [lot.location[0] - 0.0024, lot.location[1]];
+/** The place plus its three closest lots, so the map shows where you'd walk from. */
+const nearbyFrame = (place: CampusPlace) => [
+  place.location,
+  ...[...LOTS]
+    .sort((a, b) => distanceKm(place.location, a.location) - distanceKm(place.location, b.location))
+    .slice(0, 3)
+    .map((l) => l.location),
+];
+/** Same idea for a searched place with the half-open lots list below it. */
+const aboveCenter = (place: CampusPlace): [number, number] => [place.location[0] - 0.0028, place.location[1]];
 
 function matches(lot: ParkingLot, f: LotFeature) {
   if (f === "Near Me") return distanceKm(USER_LOCATION, lot.location) <= NEAR_KM;
@@ -46,6 +61,8 @@ function MapScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(params.get("lot"));
   const [filters, setFilters] = useState<LotFeature[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [drawerH, setDrawerH] = useState(150);
+  const [place, setPlace] = useState<CampusPlace | null>(getPlace(params.get("place")) ?? null);
   const [focus, setFocus] = useState<[number, number] | undefined>(getLot(params.get("lot")) ? aboveSheet(getLot(params.get("lot"))!) : undefined);
 
   useEffect(() => {
@@ -53,6 +70,11 @@ function MapScreen() {
     if (id && getLot(id)) {
       setSelectedId(id);
       setFocus(aboveSheet(getLot(id)!));
+    }
+    const p = getPlace(params.get("place"));
+    if (p) {
+      setPlace(p);
+      if (!id) setFocus(aboveCenter(p));
     }
   }, [params]);
 
@@ -62,30 +84,60 @@ function MapScreen() {
   const select = (lot: ParkingLot) => {
     setSelectedId(lot.id);
     setFocus(aboveSheet(lot));
-    router.replace(`/map?lot=${lot.id}`, { scroll: false });
+    router.replace(urlFor(lot.id, place), { scroll: false });
+  };
+
+  // Keep ?place= in the URL so closing a lot returns to the nearby list.
+  const urlFor = (lotId: string | null, p: CampusPlace | null) => {
+    const q = new URLSearchParams();
+    if (p) q.set("place", p.id);
+    if (lotId) q.set("lot", lotId);
+    const qs = q.toString();
+    return qs ? `/map?${qs}` : "/map";
+  };
+
+  const pickPlace = (p: CampusPlace) => {
+    setPlace(p);
+    setSelectedId(null);
+    setFocus(aboveCenter(p));
+    router.replace(urlFor(null, p), { scroll: false });
+  };
+
+  const clearPlace = () => {
+    setPlace(null);
+    router.replace(urlFor(selectedId, null), { scroll: false });
   };
 
   const clear = () => {
     setSelectedId(null);
-    router.replace("/map", { scroll: false });
+    if (place) setFocus(aboveCenter(place));
+    router.replace(urlFor(null, place), { scroll: false });
   };
 
   return (
     <main className="relative h-[calc(100dvh-72px-env(safe-area-inset-bottom))] overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <MapView lots={lots} selectedId={selectedId} onSelect={select} focus={focus} />
+        <MapView
+          lots={lots}
+          selectedId={selectedId}
+          onSelect={select}
+          focus={focus}
+          destination={place ? { at: place.location, label: place.name } : undefined}
+          fitPoints={!selected && place ? nearbyFrame(place) : undefined}
+          padBottom={!selected && place ? 400 : undefined}
+        />
       </div>
 
       {/* Header band */}
       <div className="absolute top-0 inset-x-0 z-[1000]">
         <header className="bg-band text-white px-5 pt-[max(env(safe-area-inset-top),14px)] pb-4 rounded-b-[24px] shadow-lift">
           <div className="flex justify-end mb-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 h-7 text-[12px] font-medium">
+            <span className="inline-flex items-center gap-1 h-7 text-[13px] font-medium text-white/60">
               <MapPin size={13} /> {CITY_LABEL}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <LotSearch placeholder="Where to park?" onPick={select} className="flex-1" />
+            <LotSearch placeholder="Where to park?" onPick={select} onPickPlace={pickPlace} className="flex-1" />
             <IconButton
               label="Filters"
               onClick={() => setShowFilters((v) => !v)}
@@ -133,140 +185,158 @@ function MapScreen() {
       <IconButton
         label="Center on me"
         onClick={() => setFocus([...USER_LOCATION] as [number, number])}
-        className="absolute right-4 z-[1000] bg-card text-brand-text shadow-lift"
-        style={{ bottom: selected ? 372 : 132 }}
+        className={clsx(
+          "absolute right-4 z-[1000] bg-card text-brand-text shadow-lift transition-opacity",
+          !selected && drawerH > 420 && "opacity-0 pointer-events-none"
+        )}
+        style={{ bottom: (selected ? 360 : drawerH) + 12 }}
       >
         <LocateFixed size={20} />
       </IconButton>
 
-      {selected ? <LotSheet lot={selected} onClose={clear} /> : <SavedDrawer onPick={select} />}
+      {selected ? (
+        <LotSheet lot={selected} place={place} onClose={clear} />
+      ) : (
+        <LotsDrawer onPick={select} onHeightChange={setDrawerH} near={place} onClearNear={clearPlace} />
+      )}
     </main>
   );
 }
 
-function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
+function LotSheet({ lot, place, onClose }: { lot: ParkingLot; place: CampusPlace | null; onClose: () => void }) {
   const { user, favorites, toggleFavorite } = useStore();
   const { open, total } = availabilityAt(lot, new Date());
   const status = statusFor(open, total);
   const km = distanceKm(USER_LOCATION, lot.location);
   const saved = favorites.includes(lot.id);
 
+  // Drag down to dismiss, like a native sheet: past the threshold (or a quick flick) it closes,
+  // otherwise it springs back. Upward drags only stretch a little.
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const suppressClick = useRef(false);
+
+  const dismiss = () => {
+    setClosing(true);
+    setTimeout(onClose, 220);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const id = e.pointerId;
+    const startY = e.clientY;
+    let lastY = startY;
+    let lastT = e.timeStamp;
+    let v = 0;
+    let moved = false;
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dy) < 6) return;
+      if (!moved) {
+        moved = true;
+        setDragging(true);
+      }
+      v = (ev.clientY - lastY) / Math.max(1, ev.timeStamp - lastT);
+      lastY = ev.clientY;
+      lastT = ev.timeStamp;
+      setDragY(dy > 0 ? dy : dy * 0.2);
+    };
+    const end = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (!moved) return;
+      suppressClick.current = true;
+      setTimeout(() => (suppressClick.current = false), 80);
+      setDragging(false);
+      if (lastY - startY > 110 || v > 0.6) dismiss();
+      else setDragY(0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  };
+
   return (
     <section
       key={lot.id}
-      className="absolute bottom-0 inset-x-0 z-[1000] bg-band text-white rounded-t-[28px] shadow-sheet px-5 pt-3 pb-5 animate-sheet-up"
+      className="absolute bottom-0 inset-x-0 z-[1000] touch-none select-none"
+      style={{
+        transform: closing ? "translateY(110%)" : `translateY(${dragY}px)`,
+        transition: dragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
+      }}
       aria-label={`${lot.name} details`}
+      onPointerDown={onPointerDown}
+      onClickCapture={(e) => {
+        if (!suppressClick.current) return;
+        suppressClick.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
-      <div className="mx-auto h-1 w-10 rounded-full bg-white/40 mb-3" />
-      <div className="relative h-[150px] rounded-[20px] overflow-hidden border border-white/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={lot.photo} alt={`${lot.name} aerial view`} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <p className="absolute left-4 bottom-3 text-[24px] font-light tracking-wide">
-          {lot.kind.toUpperCase()} {signCode(lot)}
-        </p>
-        <div className="absolute right-2 top-2 flex gap-1">
-          <IconButton
-            label={saved ? "Remove from saved" : "Save lot"}
-            onClick={() => toggleFavorite(lot.id)}
-            className="bg-black/35 backdrop-blur"
-          >
-            <Heart size={20} className={saved ? "fill-accent text-accent" : ""} />
-          </IconButton>
-          <IconButton label="Close" onClick={onClose} className="bg-black/35 backdrop-blur">
-            <X size={20} />
-          </IconButton>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-4">
-        <div>
-          <p className="text-[13px] text-white/70">{lot.address}</p>
-          <p className="text-[13px] text-white/70 flex items-center gap-1 mt-0.5">
-            <Clock size={12} /> {lot.hours}
+      {/* Inner wrapper owns the slide-in animation so it doesn't fight the drag transform. */}
+      <div className="bg-band text-white rounded-t-[28px] shadow-sheet px-5 pt-3 pb-5 animate-sheet-up">
+        <div className="mx-auto h-1 w-10 rounded-full bg-white/40 mb-3" />
+        <div className="relative h-[150px] rounded-[20px] overflow-hidden border border-white/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lot.photo} alt={`${lot.name} photo`} draggable={false} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <p className="absolute left-4 bottom-3 text-[24px] font-light tracking-wide">
+            {displayTitle(lot)}
           </p>
+          <div className="absolute right-2 top-2 flex gap-1">
+            <IconButton
+              label={saved ? "Remove from saved" : "Save lot"}
+              onClick={() => toggleFavorite(lot.id)}
+              className="bg-black/35 backdrop-blur"
+            >
+              <Heart size={20} className={saved ? "fill-accent text-accent" : ""} />
+            </IconButton>
+            <IconButton label="Close" onClick={dismiss} className="bg-black/35 backdrop-blur">
+              <X size={20} />
+            </IconButton>
+          </div>
         </div>
-        <span className="rounded-full bg-white p-0.5">
-          <StatusPill status={status} open={open} total={total} />
-        </span>
-      </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-        {[
-          { k: "Rate", v: lot.ratePerHour ? `${formatMoney(rateFor(lot, user.role))}/hr` : "Free" },
-          { k: "Drive", v: `${driveMinutes(km)} min` },
-          { k: "Distance", v: `${km.toFixed(1)} km` },
-        ].map((x) => (
-          <div key={x.k} className="rounded-2xl bg-white/10 py-2.5">
-            <p className="text-[12px] text-white/60">{x.k}</p>
-            <p className="text-[16px] font-semibold">{x.v}</p>
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-[13px] text-white/70">{lot.address}</p>
+            <p className="text-[13px] text-white/70 flex items-center gap-1 mt-0.5">
+              <Clock size={12} /> {lot.hours}
+            </p>
           </div>
-        ))}
-      </div>
+          <span className="rounded-full bg-white p-0.5 shrink-0">
+            <StatusPill status={status} open={open} total={total} />
+          </span>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        <Button variant="brand" className="!bg-brand-deep" href={`/navigate?lot=${lot.id}`} aria-disabled={status === "Full"}>
-          <Navigation size={17} /> Navigate
-        </Button>
-        <Button href={`/reserve?lot=${lot.id}`}>
-          <CalendarClock size={18} /> Reserve
-        </Button>
-      </div>
-      {status === "Full" && <p className="text-[13px] text-white/70 mt-2 text-center">Full right now — you can still reserve for later.</p>}
-    </section>
-  );
-}
+        <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+          {[
+            { k: "Rate", v: lot.ratePerHour ? `${formatMoney(rateFor(lot, user.role))}/hr` : "Free" },
+            { k: "Drive", v: `${driveMinutes(km)} min` },
+            place
+              ? { k: "Walk", v: `${walkMinutes(distanceKm(place.location, lot.location))} min` }
+              : { k: "Distance", v: `${km.toFixed(1)} km` },
+          ].map((x) => (
+            <div key={x.k} className="rounded-2xl bg-white/10 py-2.5">
+              <p className="text-[12px] text-white/60">{x.k}</p>
+              <p className="text-[16px] font-semibold">{x.v}</p>
+            </div>
+          ))}
+        </div>
 
-function SavedDrawer({ onPick }: { onPick: (lot: ParkingLot) => void }) {
-  const { favorites, recents } = useStore();
-  const [open, setOpen] = useState(false);
-  const rows = [
-    { title: "Recents", ids: recents },
-    { title: "Saved", ids: favorites },
-  ];
-
-  return (
-    <section
-      className={clsx(
-        "absolute bottom-0 inset-x-0 z-[1000] bg-band text-white rounded-t-[28px] shadow-sheet transition-[height] duration-300 overflow-hidden",
-        open ? "h-[440px]" : "h-[112px]"
-      )}
-    >
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full pt-3 pb-2 flex flex-col items-center"
-        aria-expanded={open}
-      >
-        <span className="h-1 w-10 rounded-full bg-white/40" />
-        <span className="mt-3 w-full px-5 flex items-center justify-between">
-          <span className="text-[17px] font-semibold">Recents & Saved</span>
-          <ChevronUp size={20} className={clsx("transition-transform", open && "rotate-180")} />
-        </span>
-      </button>
-      {!open && <p className="px-5 text-[13px] text-white/60">Tap a pin or open your lots</p>}
-      <div className={clsx("transition-opacity", open ? "opacity-100" : "opacity-0 pointer-events-none")}>
-        {rows.map((row) => (
-          <div key={row.title} className="mt-3">
-            <p className="px-5 text-[15px] font-medium text-white/80 mb-2">{row.title}</p>
-            {row.ids.length === 0 ? (
-              <p className="px-5 text-[14px] text-white/50 h-[118px]">Nothing here yet — tap ♡ on a lot to save it.</p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
-                {row.ids.map((id) => {
-                  const lot = getLot(id);
-                  if (!lot) return null;
-                  return (
-                    <button key={id} onClick={() => onPick(lot)} className="shrink-0 w-[138px] text-left">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={lot.photo} alt="" className="w-[138px] h-[92px] rounded-[15px] object-cover border border-white/70" />
-                      <span className="block text-[14px] text-white/80 mt-1.5 text-center">{lot.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <Button variant="brand" className="!bg-brand-deep" href={`/navigate?lot=${lot.id}`} aria-disabled={status === "Full"}>
+            <Navigation size={17} /> Navigate
+          </Button>
+          <Button href={`/reserve?lot=${lot.id}`}>
+            <CalendarClock size={18} /> Reserve
+          </Button>
+        </div>
+        {status === "Full" && <p className="text-[13px] text-white/70 mt-2 text-center">Full right now — you can still reserve for later.</p>}
       </div>
     </section>
   );

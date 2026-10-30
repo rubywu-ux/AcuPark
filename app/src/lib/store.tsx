@@ -6,15 +6,35 @@ import {
   PaymentMethodId,
   Reservation,
   Role,
+  SavedVehicle,
   Session,
   User,
   Vehicle,
+  LOTS,
+  USER_LOCATION,
+  availabilityAt,
+  distanceKm,
   getLot,
   priceFor,
+  spotsFor,
   uid,
 } from "@/services/mockData";
 
 export type ThemePref = "system" | "light" | "dark";
+
+/** "Pay ahead": armed before arriving; pays automatically once the app detects arrival at a lot. */
+export interface AutoPay {
+  hours: number;
+  payment: PaymentMethodId;
+  armedAt: string;
+}
+
+/** Status changes affect pricing, so they go to campus parking for review instead of applying instantly. */
+export interface StatusRequest {
+  to: Role;
+  reason: string;
+  requestedAt: string;
+}
 
 interface AppState {
   version: number;
@@ -26,6 +46,11 @@ interface AppState {
   recents: string[];
   defaultPayment: PaymentMethodId;
   theme: ThemePref;
+  statusRequest: StatusRequest | null;
+  autoPay: AutoPay | null;
+  /** Saved vehicles; the active one is exposed as user.vehicle for scans and bookings. */
+  vehicles: SavedVehicle[];
+  activeVehicleId: string;
 }
 
 const STORAGE_KEY = "acupark:v2";
@@ -37,10 +62,14 @@ const initialState = (): AppState => ({
   reservations: [],
   session: null,
   history: [],
-  favorites: ["lot_n06", "lot_n03"],
-  recents: ["lot_n09", "lot_n06", "lot_n03"],
+  favorites: ["lot_n22", "lot_e1"],
+  recents: ["lot_n05", "lot_n22", "lot_e1"],
   defaultPayment: "apple-pay",
   theme: "system",
+  statusRequest: null,
+  autoPay: null,
+  vehicles: [{ id: "veh_default", ...DEFAULT_USER.vehicle }],
+  activeVehicleId: "veh_default",
 });
 
 export interface CheckInInput {
@@ -58,17 +87,43 @@ interface Store extends AppState {
   reserve: (input: { lotId: string; spotId: string; starts: Date[]; hours: number }) => Reservation[];
   cancelReservation: (id: string) => void;
   checkIn: (input: CheckInInput) => Session;
+  armAutoPay: (hours: number, payment: PaymentMethodId) => void;
+  cancelAutoPay: () => void;
+  /**
+   * Arrival detected: pay with the armed auto-pay settings. Uses the given lot (or the
+   * reservation's), otherwise the nearest lot with room, and the first open stall there.
+   */
+  runAutoPay: (at?: { lotId?: string; reservationId?: string }) => Session | null;
   extendSession: (minutes: number) => number;
   endSession: () => void;
   toggleFavorite: (lotId: string) => void;
+  /** Edits the vehicle currently in use (e.g. fixing a misread plate at check-in). */
   updateVehicle: (v: Vehicle) => void;
-  updateUser: (patch: Partial<Pick<User, "name" | "email" | "role">>) => void;
+  /** Adds a vehicle when id is null, otherwise updates it. Returns its id. */
+  saveVehicle: (id: string | null, v: Vehicle) => string;
+  removeVehicle: (id: string) => void;
+  setActiveVehicle: (id: string) => void;
+  requestStatusChange: (to: Role, reason: string) => void;
+  cancelStatusRequest: () => void;
   setDefaultPayment: (p: PaymentMethodId) => void;
   setTheme: (t: ThemePref) => void;
   resetDemo: () => void;
 }
 
 const StoreContext = createContext<Store | null>(null);
+
+/** Lots that were renamed to match the real campus map; old saves still use the old ids. */
+const RENAMED_LOTS: Record<string, string> = { lot_n09: "lot_n05", lot_n06: "lot_n22", lot_n03: "lot_e1", lot_e03: "lot_n20" };
+const renameLot = (id: string) => RENAMED_LOTS[id] ?? id;
+
+const migrateLotIds = (s: AppState): AppState => ({
+  ...s,
+  favorites: Array.from(new Set(s.favorites.map(renameLot))),
+  recents: Array.from(new Set(s.recents.map(renameLot))),
+  reservations: s.reservations.map((r) => ({ ...r, lotId: renameLot(r.lotId) })),
+  session: s.session ? { ...s.session, lotId: renameLot(s.session.lotId) } : null,
+  history: s.history.map((h) => ({ ...h, lotId: renameLot(h.lotId) })),
+});
 
 const pushRecent = (recents: string[], lotId: string) => [lotId, ...recents.filter((r) => r !== lotId)].slice(0, 6);
 
@@ -83,7 +138,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as AppState;
-        if (saved.version === 2) setState({ ...initialState(), ...saved });
+        if (saved.version === 2) {
+          // Older saves only had user.vehicle — turn it into the first saved vehicle.
+          if (!saved.vehicles?.length) {
+            saved.vehicles = [{ id: "veh_default", ...saved.user.vehicle }];
+            saved.activeVehicleId = "veh_default";
+          }
+          setState(migrateLotIds({ ...initialState(), ...saved }));
+        }
       }
     } catch {
       // Corrupt or blocked storage — fall back to defaults.
@@ -178,6 +240,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.reservations, state.user.role]
   );
 
+  const armAutoPay = useCallback((hours: number, payment: PaymentMethodId) => {
+    setState((s) => ({ ...s, autoPay: { hours, payment, armedAt: new Date().toISOString() } }));
+  }, []);
+
+  const cancelAutoPay = useCallback(() => setState((s) => ({ ...s, autoPay: null })), []);
+
+  const runAutoPay: Store["runAutoPay"] = useCallback(
+    (at) => {
+      const plan = state.autoPay;
+      if (!plan) return null;
+      const reservation = state.reservations.find((r) => r.id === at?.reservationId && r.status === "upcoming");
+      const now = new Date();
+      const lot =
+        getLot(reservation?.lotId ?? at?.lotId) ??
+        [...LOTS]
+          .filter((l) => availabilityAt(l, now).open > 0)
+          .sort((a, b) => distanceKm(USER_LOCATION, a.location) - distanceKm(USER_LOCATION, b.location))[0];
+      if (!lot) return null;
+      const spotId = reservation?.spotId ?? spotsFor(lot, now).find((sp) => !sp.occupied)?.id ?? "A1";
+      const session = checkIn({
+        lotId: lot.id,
+        spotId,
+        hours: plan.hours,
+        reservationId: reservation?.id,
+        payment: plan.payment,
+      });
+      setState((s) => ({ ...s, autoPay: null }));
+      return session;
+    },
+    [state.autoPay, state.reservations, checkIn]
+  );
+
   const extendSession = useCallback(
     (minutes: number) => {
       const s = state.session;
@@ -218,29 +312,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateVehicle = useCallback((vehicle: Vehicle) => {
-    setState((s) => ({ ...s, user: { ...s.user, vehicle } }));
+    setState((s) => ({
+      ...s,
+      vehicles: s.vehicles.map((v) => (v.id === s.activeVehicleId ? { ...vehicle, id: v.id } : v)),
+    }));
   }, []);
 
-  const updateUser = useCallback((patch: Partial<Pick<User, "name" | "email" | "role">>) => {
-    setState((s) => ({ ...s, user: { ...s.user, ...patch } }));
+  const saveVehicle = useCallback((id: string | null, vehicle: Vehicle) => {
+    const vid = id ?? uid("veh");
+    setState((s) => ({
+      ...s,
+      vehicles: id ? s.vehicles.map((v) => (v.id === id ? { ...vehicle, id } : v)) : [...s.vehicles, { ...vehicle, id: vid }],
+    }));
+    return vid;
   }, []);
+
+  const removeVehicle = useCallback((id: string) => {
+    setState((s) => {
+      // Always keep at least one vehicle to scan and book with.
+      if (s.vehicles.length <= 1) return s;
+      const vehicles = s.vehicles.filter((v) => v.id !== id);
+      return { ...s, vehicles, activeVehicleId: s.activeVehicleId === id ? vehicles[0].id : s.activeVehicleId };
+    });
+  }, []);
+
+  const setActiveVehicle = useCallback((id: string) => setState((s) => ({ ...s, activeVehicleId: id })), []);
+
+  // There is deliberately no way to set user.role from the client — only a request for review.
+  const requestStatusChange = useCallback((to: Role, reason: string) => {
+    setState((s) => ({ ...s, statusRequest: { to, reason, requestedAt: new Date().toISOString() } }));
+  }, []);
+
+  const cancelStatusRequest = useCallback(() => setState((s) => ({ ...s, statusRequest: null })), []);
 
   const setDefaultPayment = useCallback((p: PaymentMethodId) => setState((s) => ({ ...s, defaultPayment: p })), []);
   const setTheme = useCallback((t: ThemePref) => setState((s) => ({ ...s, theme: t })), []);
   const resetDemo = useCallback(() => setState((s) => ({ ...initialState(), theme: s.theme })), []);
 
+  const activeVehicle = state.vehicles.find((v) => v.id === state.activeVehicleId) ?? state.vehicles[0];
+
   const value: Store = {
     ...state,
+    user: { ...state.user, vehicle: activeVehicle },
     ready,
     upcoming,
     reserve,
     cancelReservation,
     checkIn,
+    armAutoPay,
+    cancelAutoPay,
+    runAutoPay,
     extendSession,
     endSession,
     toggleFavorite,
     updateVehicle,
-    updateUser,
+    saveVehicle,
+    removeVehicle,
+    setActiveVehicle,
+    requestStatusChange,
+    cancelStatusRequest,
     setDefaultPayment,
     setTheme,
     resetDemo,

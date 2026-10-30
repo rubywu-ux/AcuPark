@@ -130,6 +130,32 @@ body {
 .lot-pin.busy { background: rgb(var(--warning)); }
 .lot-pin.full { background: rgb(var(--danger)); }
 
+/* Searched place: yellow dot on the spot, label hanging below it so lot pins above stay clear. */
+.dest-pin {
+  position: relative;
+  transform: translate(-50%, 14px);
+  width: max-content;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: #211f27;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 6px 16px rgba(13, 10, 44, 0.35);
+}
+.dest-pin::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -20px;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  border-radius: 999px;
+  background: #ffc700;
+  border: 3px solid #211f27;
+}
+
 .user-dot {
   position: relative;
   width: 18px;

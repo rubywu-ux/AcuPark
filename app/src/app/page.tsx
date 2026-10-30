@@ -4,13 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
-import { Camera, ChevronRight, Clock, Navigation, ScanLine } from "lucide-react";
+import { BellRing, Camera, Check, ChevronRight, Clock, CreditCard, Navigation, ScanLine, Smartphone, Zap } from "lucide-react";
 import LotSearch from "@/components/LotSearch";
 import Scanner from "@/components/Scanner";
-import { Button, Card, Eyebrow, MapThumb, Sheet, StatusPill, useToast } from "@/components/ui";
+import { Button, Card, Chip, Eyebrow, MapThumb, Sheet, StatusPill, useNotify, useToast } from "@/components/ui";
 import { useNow, useStore } from "@/lib/store";
 import {
   LOTS,
+  PAYMENT_METHODS,
+  PaymentMethodId,
   USER_LOCATION,
   availabilityAt,
   distanceKm,
@@ -28,10 +30,28 @@ import {
 export default function Home() {
   const router = useRouter();
   const toast = useToast();
-  const { ready, user, session, upcoming, extendSession, endSession, defaultPayment } = useStore();
+  const notify = useNotify();
+  const { ready, user, session, upcoming, extendSession, endSession, defaultPayment, autoPay, cancelAutoPay, runAutoPay } =
+    useStore();
   const now = useNow();
   const [scanning, setScanning] = useState(false);
+  const [chooser, setChooser] = useState<null | "choose" | "ahead">(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
+
+  // Stand-in for the geofence that would fire when the driver pulls into a lot.
+  const simulateArrival = () => {
+    const s = runAutoPay();
+    if (!s) {
+      toast("Couldn't find an open lot nearby");
+      return;
+    }
+    const lot = getLot(s.lotId)!;
+    notify({
+      title: "All set, parking paid!",
+      body: `${lot.name} · stall ${s.spotId} · ${formatMoney(s.amount)} until ${formatTime(s.endsAt)}.`,
+      href: `/success?s=${s.id}&review=1`,
+    });
+  };
 
   const firstName = user.name.split(" ")[0];
 
@@ -55,26 +75,35 @@ export default function Home() {
         <p className="text-white/70 text-[15px] mt-1 mb-5">
           {session ? "You're parked. We'll keep an eye on the clock." : "Ready to park?"}
         </p>
-        <LotSearch placeholder="Search lot #" onPick={(lot) => router.push(`/map?lot=${lot.id}`)} />
+        <LotSearch
+          placeholder="Not scanning? Search by lot #"
+          // Search is the pay-now path; AI Quick Scan is for paying ahead or auto-detecting the lot.
+          onPick={(lot) => router.push(`/pay?lot=${lot.id}`)}
+          onPickPlace={(place) => router.push(`/map?place=${place.id}`)}
+        />
       </header>
 
       <div className="px-6 pt-6 space-y-6 pb-8">
-        {/* AI Quick Scan */}
-        <button
-          onClick={() => setScanning(true)}
-          className="group w-full rounded-card border-[3px] border-dashed border-line bg-surface hover:border-brand/40 transition flex items-center gap-4 p-5 text-left"
-        >
-          <span className="grid place-items-center w-16 h-16 rounded-2xl bg-brand text-white shadow-lift group-active:scale-95 transition">
-            <Camera size={30} />
-          </span>
-          <span className="flex-1">
-            <span className="flex items-center gap-1.5 text-[18px] font-semibold">
-              <ScanLine size={18} className="text-brand-text" /> AI Quick Scan
+        {/* AI Quick Scan: pay ahead (auto-pay on arrival) or scan now */}
+        {autoPay ? (
+          <AutoPayCard onArrive={simulateArrival} onScan={() => setScanning(true)} onCancel={cancelAutoPay} />
+        ) : (
+          <button
+            onClick={() => setChooser("choose")}
+            className="group w-full rounded-card border-[3px] border-dashed border-line bg-surface hover:border-brand/40 transition flex items-center gap-4 p-5 text-left"
+          >
+            <span className="grid place-items-center w-16 h-16 rounded-2xl bg-brand text-white shadow-lift group-active:scale-95 transition">
+              <Camera size={30} />
             </span>
-            <span className="block text-[14px] text-muted mt-0.5">Snap your plate to check in and pay on arrival</span>
-          </span>
-          <ChevronRight className="text-subtle" />
-        </button>
+            <span className="flex-1">
+              <span className="flex items-center gap-1.5 text-[18px] font-semibold">
+                <ScanLine size={18} className="text-brand-text" /> AI Quick Scan
+              </span>
+              <span className="block text-[14px] text-muted mt-0.5">Pay ahead, or let us detect the lot you’re in</span>
+            </span>
+            <ChevronRight className="text-subtle" />
+          </button>
+        )}
 
         {!ready ? (
           <div className="h-40 rounded-card bg-surface animate-pulse" />
@@ -95,6 +124,34 @@ export default function Home() {
       </div>
 
       {scanning && <Scanner onClose={() => setScanning(false)} onDone={onScanned} />}
+
+      <Sheet
+        open={chooser !== null}
+        onClose={() => setChooser(null)}
+        title={chooser === "ahead" ? "Pay ahead" : "AI Quick Scan"}
+      >
+        {chooser === "ahead" ? (
+          <PayAheadForm onDone={() => setChooser(null)} />
+        ) : (
+          <div className="space-y-3">
+            <ModeOption
+              icon={<Zap size={22} />}
+              title="Pay ahead"
+              body="Auto-pay the moment you arrive. We detect your lot and send you a receipt."
+              onClick={() => setChooser("ahead")}
+            />
+            <ModeOption
+              icon={<Camera size={22} />}
+              title="I’m here — scan now"
+              body="In a rush? Snap your plate, choose how long, and pay."
+              onClick={() => {
+                setChooser(null);
+                setScanning(true);
+              }}
+            />
+          </div>
+        )}
+      </Sheet>
 
       <Sheet open={confirmEnd} onClose={() => setConfirmEnd(false)} title="End parking?">
         <p className="text-muted text-[15px] mb-5">
@@ -117,6 +174,132 @@ export default function Home() {
         </div>
       </Sheet>
     </main>
+  );
+}
+
+function ModeOption({
+  icon,
+  title,
+  body,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-4 rounded-2xl border-2 border-line bg-card hover:border-brand/50 hover:bg-brand-soft/40 p-4 text-left transition"
+    >
+      <span className="w-12 h-12 rounded-xl bg-brand text-white grid place-items-center shrink-0">{icon}</span>
+      <span className="flex-1">
+        <span className="block text-[17px] font-semibold">{title}</span>
+        <span className="block text-[14px] text-muted">{body}</span>
+      </span>
+      <ChevronRight className="text-subtle shrink-0" />
+    </button>
+  );
+}
+
+function PayAheadForm({ onDone }: { onDone: () => void }) {
+  const toast = useToast();
+  const { user, defaultPayment, armAutoPay } = useStore();
+  const [hours, setHours] = useState(2);
+  const [payment, setPayment] = useState<PaymentMethodId>(defaultPayment);
+
+  return (
+    <div className="space-y-5">
+      <p className="text-[15px] text-muted -mt-1">
+        When you pull into a campus lot we&apos;ll find your stall, pay for {user.vehicle.make} {user.vehicle.model} ·{" "}
+        <span className="font-mono">{user.vehicle.plate}</span>, and notify you.
+      </p>
+      <div>
+        <Eyebrow className="mb-2">How long will you stay?</Eyebrow>
+        <div className="grid grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map((h) => (
+            <Chip key={h} active={hours === h} onClick={() => setHours(h)} className="w-full">
+              {h} hr
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Eyebrow className="mb-2">Pay with</Eyebrow>
+        <div className="grid grid-cols-2 gap-2" role="radiogroup">
+          {(Object.keys(PAYMENT_METHODS) as PaymentMethodId[]).map((id) => {
+            const active = payment === id;
+            return (
+              <button
+                key={id}
+                role="radio"
+                aria-checked={active}
+                onClick={() => setPayment(id)}
+                className={clsx(
+                  "flex items-center gap-2 rounded-xl border-2 px-3 h-12 text-[14px] font-semibold transition",
+                  active ? "border-brand bg-brand-soft text-ink" : "border-line opacity-45 hover:opacity-75"
+                )}
+              >
+                {id === "apple-pay" ? <Smartphone size={16} /> : <CreditCard size={16} />}
+                {id === "apple-pay" ? "Apple Pay" : "Visa 4242"}
+                {active && <Check size={16} className="ml-auto text-brand-text" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <Button
+        block
+        onClick={() => {
+          armAutoPay(hours, payment);
+          try {
+            if (typeof Notification !== "undefined" && Notification.permission === "default") {
+              Notification.requestPermission();
+            }
+          } catch {
+            // Notifications unsupported — the in-app banner still shows.
+          }
+          onDone();
+          toast("Auto-pay is on — we’ll pay when you arrive");
+        }}
+      >
+        <BellRing size={18} /> Turn on auto-pay
+      </Button>
+      <p className="text-[12px] text-subtle text-center">Charged only when you arrive. Turn it off any time.</p>
+    </div>
+  );
+}
+
+function AutoPayCard({ onArrive, onScan, onCancel }: { onArrive: () => void; onScan: () => void; onCancel: () => void }) {
+  const { autoPay } = useStore();
+  if (!autoPay) return null;
+  return (
+    <section className="rounded-card bg-brand-deep text-white p-5 shadow-lift animate-fade-up">
+      <div className="flex items-center gap-2">
+        <span className="relative w-3 h-3">
+          <span className="absolute inset-0 rounded-full bg-accent animate-ring-pulse" />
+          <span className="absolute inset-0 rounded-full bg-accent" />
+        </span>
+        <span className="text-[13px] font-semibold uppercase tracking-wider text-white/80">Auto-pay is on</span>
+      </div>
+      <p className="text-[20px] font-semibold mt-2 leading-snug">We&apos;ll pay for you when you arrive</p>
+      <p className="text-[14px] text-white/70 mt-1">
+        {autoPay.hours} hr · {autoPay.payment === "apple-pay" ? "Apple Pay" : "Visa 4242"} · lot detected automatically
+      </p>
+      <div className="grid grid-cols-2 gap-2 mt-4">
+        {/* Demo stand-in for the arrival geofence. */}
+        <Button size="md" onClick={onArrive}>
+          Test arrival
+        </Button>
+        <Button size="md" variant="outline" className="!bg-white/10 !text-white !border-white/20" onClick={onScan}>
+          <Camera size={16} /> Scan now
+        </Button>
+      </div>
+      <button onClick={onCancel} className="w-full mt-3 text-[13px] text-white/60 hover:text-white">
+        Turn off auto-pay
+      </button>
+    </section>
   );
 }
 

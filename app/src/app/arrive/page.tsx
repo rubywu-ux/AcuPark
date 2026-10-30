@@ -3,18 +3,18 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { BadgeCheck, MapPin } from "lucide-react";
+import { BadgeCheck, Check, CreditCard, MapPin, ScanFace, Smartphone } from "lucide-react";
 import { SCAN_IMAGE_KEY } from "@/components/Scanner";
 import { Button, Chip, Eyebrow, Sheet, Spinner, TopBar, useToast } from "@/components/ui";
 import VehicleForm from "@/components/VehicleForm";
 import { useStore } from "@/lib/store";
-import { formatMoney, formatTime, getLot, priceFor, signCode, spotsFor } from "@/services/mockData";
+import { PaymentMethodId, formatMoney, formatTime, getLot, priceFor, signCode, spotsFor } from "@/services/mockData";
 
 function ArriveScreen() {
   const params = useSearchParams();
   const router = useRouter();
   const toast = useToast();
-  const { ready, user, reservations, updateVehicle } = useStore();
+  const { ready, user, reservations, updateVehicle, defaultPayment, checkIn } = useStore();
   const reservation = reservations.find((r) => r.id === params.get("res"));
   const lot = getLot(reservation?.lotId ?? params.get("lot"));
 
@@ -22,6 +22,9 @@ function ArriveScreen() {
   const [matching, setMatching] = useState(true);
   const [hours, setHours] = useState(2);
   const [editing, setEditing] = useState(false);
+  const [method, setMethod] = useState<PaymentMethodId | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const payment = method ?? defaultPayment;
 
   // Walk-up arrivals get the first open stall the camera "sees".
   const detectedSpot = useMemo(() => (lot ? spotsFor(lot, new Date()).find((s) => !s.occupied)?.id : undefined), [lot]);
@@ -55,9 +58,16 @@ function ArriveScreen() {
     : hours;
   const amount = reservation?.price ?? priceFor(lot, hours, user.role);
   const v = user.vehicle;
-  const payHref = reservation
-    ? `/pay?res=${reservation.id}`
-    : `/pay?lot=${lot.id}&spot=${spotId}&h=${hours}`;
+
+  // "I'm here" path: everything is detected, so the driver only picks a duration and pays — no extra screen.
+  const pay = () => {
+    if (!spotId) return;
+    setProcessing(true);
+    setTimeout(() => {
+      const session = checkIn({ lotId: lot.id, spotId, hours: hrs, reservationId: reservation?.id, payment });
+      router.replace(`/success?s=${session.id}`);
+    }, 1500);
+  };
 
   return (
     <main className="min-h-[100dvh] bg-bg flex flex-col">
@@ -72,7 +82,7 @@ function ArriveScreen() {
           </span>
         </h1>
 
-        <div className="relative mt-5 aspect-square w-full rounded-card overflow-hidden border-4 border-line">
+        <div className="relative mt-5 aspect-[4/3] w-full rounded-card overflow-hidden border-4 border-line">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photo} alt="Your vehicle" className="w-full h-full object-cover object-bottom" />
           {matching ? (
@@ -122,6 +132,31 @@ function ArriveScreen() {
             </p>
           </div>
         )}
+
+        <div className="mt-6">
+          <Eyebrow className="mb-2">Pay with</Eyebrow>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Payment method">
+            {(["apple-pay", "card"] as PaymentMethodId[]).map((id) => {
+              const active = payment === id;
+              return (
+                <button
+                  key={id}
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setMethod(id)}
+                  className={clsx(
+                    "flex items-center gap-2 rounded-xl border-2 px-3 h-12 text-[14px] font-semibold transition",
+                    active ? "border-brand bg-brand-soft text-ink" : "border-line bg-card opacity-45 hover:opacity-75"
+                  )}
+                >
+                  {id === "apple-pay" ? <Smartphone size={16} /> : <CreditCard size={16} />}
+                  {id === "apple-pay" ? "Apple Pay" : "Visa 4242"}
+                  {active && <Check size={16} className="ml-auto text-brand-text" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-6 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] bg-gradient-to-t from-bg via-bg to-transparent">
@@ -130,14 +165,22 @@ function ArriveScreen() {
             Lot is full — find another
           </Button>
         ) : (
-          <Button block disabled={matching} onClick={() => router.push(payHref)} className={clsx(matching && "opacity-60")}>
-            Looks Good!
+          <Button block disabled={matching || processing} onClick={pay} className={clsx(matching && "opacity-60")}>
+            {processing ? <Spinner /> : `Confirm Payment · ${formatMoney(amount)}`}
           </Button>
         )}
         <p className="text-center text-[12px] text-subtle mt-2">
-          {formatMoney(amount)} for {hrs} hr{hrs === 1 ? "" : "s"}
+          {hrs} hr{hrs === 1 ? "" : "s"} · {reservation ? "reserved" : `${user.role} rate`}
         </p>
       </div>
+
+      <Sheet open={processing && payment === "apple-pay"} onClose={() => {}} title="Apple Pay">
+        <div className="flex flex-col items-center py-4">
+          <ScanFace size={56} className="text-brand-text animate-pulse" strokeWidth={1.5} />
+          <p className="mt-3 text-[17px] font-semibold">Confirm with Face ID</p>
+          <p className="text-[14px] text-muted">AcuPark · {formatMoney(amount)}</p>
+        </div>
+      </Sheet>
 
       <Sheet open={editing} onClose={() => setEditing(false)} title="Fix vehicle details">
         <VehicleForm

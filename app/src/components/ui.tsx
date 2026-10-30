@@ -135,7 +135,7 @@ export function StatusPill({ status, open, total }: { status: LotStatus; open: n
   const tone =
     status === "Full" ? "bg-danger/10 text-danger" : status === "Busy" ? "bg-warning/15 text-warning" : "bg-success/10 text-success";
   return (
-    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-[13px] font-semibold", tone)}>
+    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-[13px] font-semibold whitespace-nowrap shrink-0", tone)}>
       <span className="w-2 h-2 rounded-full bg-current" />
       {status === "Full" ? "Full" : `${open} of ${total} open`}
     </span>
@@ -300,7 +300,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={show}>
       {children}
       {msg && (
-        <div className="fixed inset-x-0 top-[max(env(safe-area-inset-top),12px)] z-[90] flex justify-center px-4 pointer-events-none">
+        <div className="fixed inset-x-0 top-[max(env(safe-area-inset-top),12px)] z-[2000] flex justify-center px-4 pointer-events-none">
           <div
             role="status"
             className="max-w-app w-full rounded-2xl bg-ink text-bg px-4 py-3 text-[15px] font-medium shadow-lift animate-fade-up"
@@ -314,6 +314,75 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 }
 
 export const useToast = () => useContext(ToastContext);
+
+// ---------- Notifications ----------
+
+export interface AppNotification {
+  title: string;
+  body: string;
+  /** Where "Review here" (or tapping the banner) goes. */
+  href: string;
+}
+
+const NotifyContext = createContext<(n: AppNotification) => void>(() => {});
+
+/**
+ * Phone-style banner that slides in from the top. Also mirrors to a system notification when
+ * the browser allows it, so auto-pay can reach the driver even if AcuPark isn't on screen.
+ */
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const [note, setNote] = useState<AppNotification | null>(null);
+
+  const notify = useCallback((n: AppNotification) => {
+    setNote(n);
+    try {
+      if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.hidden) {
+        new Notification(n.title, { body: n.body, icon: "/icon.png" });
+      }
+    } catch {
+      // Some browsers only allow notifications from a service worker — the banner still shows.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!note) return;
+    const t = setTimeout(() => setNote(null), 7000);
+    return () => clearTimeout(t);
+  }, [note]);
+
+  return (
+    <NotifyContext.Provider value={notify}>
+      {children}
+      {note && (
+        <div className="fixed inset-x-0 top-[max(env(safe-area-inset-top),10px)] z-[2100] flex justify-center px-3">
+          <button
+            role="alert"
+            onClick={() => {
+              setNote(null);
+              router.push(note.href);
+            }}
+            className="max-w-app w-full flex items-start gap-3 rounded-[22px] bg-card/95 backdrop-blur text-ink p-3.5 text-left shadow-lift border border-line animate-[fade-up_0.35s_cubic-bezier(0.2,0.8,0.2,1)_both]"
+          >
+            <span className="w-10 h-10 rounded-xl bg-brand text-white grid place-items-center text-[20px] font-bold shrink-0">P</span>
+            <span className="flex-1 min-w-0">
+              <span className="flex items-center justify-between text-[12px] text-subtle">
+                <span className="font-semibold uppercase tracking-wide">AcuPark</span>
+                <span>now</span>
+              </span>
+              <span className="block text-[16px] font-semibold mt-0.5">{note.title}</span>
+              <span className="block text-[14px] text-muted">
+                {note.body} <span className="text-brand-text font-semibold underline underline-offset-2">Review here</span>
+              </span>
+            </span>
+          </button>
+        </div>
+      )}
+    </NotifyContext.Provider>
+  );
+}
+
+export const useNotify = () => useContext(NotifyContext);
 
 export function Spinner({ className }: { className?: string }) {
   return <span className={clsx("inline-block w-5 h-5 rounded-full border-2 border-current border-r-transparent animate-spin", className)} />;

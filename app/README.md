@@ -1,38 +1,10 @@
-# AcuPark
+# AcuPark — app
 
-Mobile-first campus parking web app.
+The Next.js app for AcuPark. See the [project README](../README.md) for features, setup and usage, and [docs/project/USER_FLOWS.md](../docs/project/USER_FLOWS.md) for every flow.
 
-## Features
-- **AI Quick Scan**: Use camera to scan parking lots.
-- **Real-time Map**: Find available spots.
-- **Reservations**: Book spots in advance with an enhanced "Smart Zoom" timeline for precise time selection.
-- **Smart Navigation**: Route guidance with "Anxiety Reducer".
-- **Profile**: Manage vehicle and payment methods.
+```bash
+npm install
+npm run dev   # http://localhost:3000
+```
 
-## Setup
-
-1.  Install dependencies:
-    ```bash
-    # Optional: Run this only if you encounter SSL certificate errors
-    npm config set strict-ssl false
-    
-    npm install
-    ```
-
-2.  Run the development server:
-    ```bash
-    npm run dev
-    ```
-
-3.  Open [http://localhost:3000](http://localhost:3000) with your browser.
-
-## Mobile View
-This app is optimized for mobile portrait mode. Use your browser's developer tools to simulate a mobile device (e.g., iPhone 12/14 Pro).
-
-## Screenshots
-
-| Home Screen | AI Scan | Reservation | Real-time Map | Navigation | Payment |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| <img src="public/screenshots/home.png" width="180" /> | <img src="public/screenshots/scan.png" width="180" /> | <img src="public/screenshots/reservation.png" width="180" /> | <img src="public/screenshots/map.png" width="180" /> | <img src="public/screenshots/navigation.png" width="180" /> | <img src="public/screenshots/payment.png" width="180" /> |
-
-> **Note:** Please add screenshots to `public/screenshots/` named `home.png`, `scan.png`, `reservation.png`, `map.png`, `navigation.png`, and `payment.png`.
+If `npm install` fails with SSL certificate errors on a managed network, run `npm config set strict-ssl false` first.

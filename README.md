@@ -1,25 +1,36 @@
 # AcuPark 🚗
 
-AcuPark is a modern, mobile-first parking management application built with Next.js 14. It simplifies the parking experience by allowing users to scan their vehicle, find parking spots, and make reservations seamlessly.
+AcuPark is a mobile-first campus parking app for the University of Washington, built with Next.js 14. Find a lot, reserve a stall, get there, and pay ahead, on arrival, or on the spot.
 
 ## 🌟 Features
 
--   **End-to-end flow**: Map → lot details → reserve → confirmed → navigate → arrive & scan → pay → live parking timer.
--   **AI Quick Scan**: Snap your plate to check in on arrival (simulated recognition). Works with a reservation or as a drive-up; falls back to a sample photo when no camera is available.
--   **Interactive Map**: Leaflet with OpenStreetMap tiles.
-    -   **Live availability pins**: open-stall counts colored Available / Busy / Full.
-    -   **Filters & search**: Near Me, Low Cost, Free Parking, Late Hours, Walkability, EV Charging; search by lot code.
-    -   **Recents & Saved**: slide-up drawer of lot photos; heart a lot to save it.
--   **Reservations**:
-    -   Pick a stall on an aisle layout (Entry → Exit), then dates, start time and duration.
-    -   Role-based pricing (Student / Faculty / Visitor), overlap and past-time validation, cancel anytime before start.
-    -   "Starting in" countdown and "Take Me There".
--   **Navigation**: simulated turn-by-turn drive with traffic-light count and a live "spot held · N open" badge (the "anxiety reducer"), plus a Google Maps hand-off.
--   **Payment (UI only)**: Apple Pay or saved card, then a "Paid" confirmation.
--   **Active session**: time remaining, +30 min extension (charged at your rate), 10-minute reminder, end parking, history.
--   **Settings**: campus status, vehicle, default payment, Auto / Light / Dark theme, reset demo data.
+### Three ways to pay
+| Path | When | How it works |
+|---|---|---|
+| **Pay ahead** | Before you leave | AI Quick Scan → *Pay ahead*: pick a duration and card, turn on auto-pay. When you arrive, AcuPark detects the lot and stall, pays, and sends **"All set, parking paid!"** with *Review here*. |
+| **I'm here — scan now** | In a rush, already parked | AI Quick Scan → *I'm here*: snap your plate; lot, stall and vehicle are detected. Choose how long and **Confirm Payment** on the same screen. |
+| **Search to pay now** | Not scanning | Home search *"Not scanning? Search by lot #"* → checkout: confirm your stall, pick a duration, pay. |
 
-All state is kept in the browser (`localStorage`) through a single store in `app/src/lib/store.tsx`; mock lots and helpers live in `app/src/services/mockData.ts`, shaped for a later Supabase swap.
+Payment is UI-only (Apple Pay or a saved card); nothing is charged.
+
+### Find and reserve
+-   **Live map** (Leaflet + OpenStreetMap) with open-stall counts on every pin, colored Available / Busy / Full.
+-   **Real UW lots**: N01, N02, N05, N22, E1, E12, E19 and Padelford Garage sit at their OpenStreetMap positions (capacities, rates and hours are mock data).
+-   **Campus building search**: type a building or area (Denny Hall, Burke Museum, Art Building, East Campus…) and the drawer lists nearby lots by walking time, with the closest open lot tagged **Best match**.
+-   **Draggable lots drawer**: Recents and Saved tabs; drag anywhere on it to open or close. Lot cards drag down to dismiss.
+-   **Filters**: Near Me, Low Cost, Free Parking, Late Hours, Walkability, EV Charging.
+-   **Reservations**: pick a stall on a slanted-bay aisle layout (Entry → Exit), then dates, start time and duration; "Starting in" countdown and *Take Me There*.
+-   **Navigation**: simulated turn-by-turn drive with a traffic-light count and a live "spot held · N open" badge, plus a Google Maps hand-off. Arriving with auto-pay on pays automatically.
+
+### While parked
+-   Live timer with **+30 min** (charged at your rate), a 10-minute reminder, End parking, and history.
+
+### Settings
+-   **Campus status** (Student / Faculty / Visitor) is verified and read-only; changes go through *Request to change status*, and pricing doesn't change until approved.
+-   **Saved vehicles**: add, edit, delete, and choose the one in use (it's what scans match and bookings use).
+-   **Default payment**, **Auto / Light / Dark** theme, and **Reset data**.
+
+All state lives in the browser (`localStorage`) through one store in `app/src/lib/store.tsx`; lots, places and helpers are in `app/src/services/mockData.ts`, shaped for a later Supabase swap. See **[docs/project/USER_FLOWS.md](docs/project/USER_FLOWS.md)** for every flow step by step.
 
 ## 🎨 Design System
 
@@ -40,16 +51,18 @@ This project was built using the **"Vibe Coding"** methodology—a flow-state dr
 
 ## 📱 Screenshots
 
-| Home Screen | AI Scan | Reservation | Real-time Map | Navigation | Payment |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| <img src="app/public/screenshots/home.png" width="180" /> | <img src="app/public/screenshots/scan.png" width="180" /> | <img src="app/public/screenshots/reservation.png" width="180" /> | <img src="app/public/screenshots/map.png" width="180" /> | <img src="app/public/screenshots/navigation.png" width="180" /> | <img src="app/public/screenshots/payment.png" width="180" /> |
+| Home | I'm here (scan) | Reserve a stall |
+|:---:|:---:|:---:|
+| <img src="app/public/screenshots/home.png" width="220" /> | <img src="app/public/screenshots/scan.png" width="220" /> | <img src="app/public/screenshots/reservation.png" width="220" /> |
+| **Near a building** | **Navigation** | **Pay-now checkout** |
+| <img src="app/public/screenshots/map.png" width="220" /> | <img src="app/public/screenshots/navigation.png" width="220" /> | <img src="app/public/screenshots/payment.png" width="220" /> |
 
 ## 🛠️ Tech Stack
 
 -   **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
 -   **Language**: TypeScript
 -   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
--   **Map Engine**: [Leaflet](https://leafletjs.com/) & [React-Leaflet](https://react-leaflet.js.org/)
+-   **Map Engine**: [Leaflet](https://leafletjs.com/) & [React-Leaflet](https://react-leaflet.js.org/) with [OpenStreetMap](https://www.openstreetmap.org/) tiles
 -   **Icons**: [Lucide React](https://lucide.dev/)
 -   **Camera**: [React Webcam](https://www.npmjs.com/package/react-webcam)
 -   **Build Tool**: Turbopack (`next dev --turbo`)
@@ -125,17 +138,26 @@ iOS and Android block camera access on insecure (HTTP) connections. To test the 
 
 ## 📱 Usage
 
-1.  **Map**: tap a pin (or search a code like `N06`) → **Reserve**.
+**Reserve and drive in**
+1.  **Map**: tap a pin, or search a lot code (`N22`) or a building (`Denny Hall`) → **Reserve**.
 2.  Pick a stall, date, time and duration → **Start Reservation**.
 3.  **Take Me There** → **Start** (use **Skip ahead** to speed up the demo drive).
-4.  On arrival, **Scan & check in** → **Looks Good!** → **Confirm Payment**.
-5.  Back on **Home**, watch the timer, tap **+30 min**, or **End parking**.
+4.  On arrival, **Scan & check in** → choose payment → **Confirm Payment**.
 
-Or skip the reservation: tap **AI Quick Scan** on Home to check in at the nearest open lot. **Settings → Reset demo data** starts over.
+**Pay ahead**: Home → **AI Quick Scan** → **Pay ahead** → pick a duration → **Turn on auto-pay**. Then tap **Test arrival** on the auto-pay card (or finish a navigation) to see the automatic payment and notification.
+
+**I'm here**: Home → **AI Quick Scan** → **I'm here — scan now** → snap your plate (or *Use sample photo*) → pick how long → **Confirm Payment**.
+
+**Pay now by lot #**: type a lot code in the Home search → confirm your stall and duration → **Confirm Payment**.
+
+Back on **Home**, watch the timer, tap **+30 min**, or **End parking**. **Settings → Reset data** starts over.
 
 ## 📚 Documentation
 
-For more detailed information about the project requirements and technical architecture, please refer to the [docs/](docs/) directory.
+-   **[User flows](docs/project/USER_FLOWS.md)**: every screen and path, step by step.
+-   **[Project brief](docs/project/PROJECT_BRIEF.md)**: original requirements and current status.
+-   **[Credits](docs/CREDITS.md)**: photo and map data sources.
+-   **[docs/](docs/)**: everything else, including Figma MCP and the Vibe Coding write-up.
 
 ## 🤝 Contributing
 

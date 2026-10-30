@@ -11,7 +11,15 @@ const FIELDS: { key: keyof Vehicle; label: string; placeholder: string }[] = [
   { key: "model", label: "Model", placeholder: "Prius" },
 ];
 
-export default function VehicleForm({ initial, onSave }: { initial: Vehicle; onSave: (v: Vehicle) => void }) {
+export default function VehicleForm({
+  initial,
+  onSave,
+  submitLabel = "Save vehicle",
+}: {
+  initial: Vehicle;
+  onSave: (v: Vehicle) => void;
+  submitLabel?: string;
+}) {
   const [v, setV] = useState(initial);
   const valid = v.plate.trim().length >= 2 && v.make.trim() && v.model.trim();
 
@@ -39,7 +47,7 @@ export default function VehicleForm({ initial, onSave }: { initial: Vehicle; onS
         ))}
       </div>
       <Button type="submit" block disabled={!valid} className="mt-2">
-        Save vehicle
+        {submitLabel}
       </Button>
     </form>
   );
