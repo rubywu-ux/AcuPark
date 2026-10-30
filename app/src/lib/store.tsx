@@ -16,6 +16,13 @@ import {
 
 export type ThemePref = "system" | "light" | "dark";
 
+/** Status changes affect pricing, so they go to campus parking for review instead of applying instantly. */
+export interface StatusRequest {
+  to: Role;
+  reason: string;
+  requestedAt: string;
+}
+
 interface AppState {
   version: number;
   user: User;
@@ -26,6 +33,7 @@ interface AppState {
   recents: string[];
   defaultPayment: PaymentMethodId;
   theme: ThemePref;
+  statusRequest: StatusRequest | null;
 }
 
 const STORAGE_KEY = "acupark:v2";
@@ -41,6 +49,7 @@ const initialState = (): AppState => ({
   recents: ["lot_n09", "lot_n06", "lot_n03"],
   defaultPayment: "apple-pay",
   theme: "system",
+  statusRequest: null,
 });
 
 export interface CheckInInput {
@@ -62,7 +71,8 @@ interface Store extends AppState {
   endSession: () => void;
   toggleFavorite: (lotId: string) => void;
   updateVehicle: (v: Vehicle) => void;
-  updateUser: (patch: Partial<Pick<User, "name" | "email" | "role">>) => void;
+  requestStatusChange: (to: Role, reason: string) => void;
+  cancelStatusRequest: () => void;
   setDefaultPayment: (p: PaymentMethodId) => void;
   setTheme: (t: ThemePref) => void;
   resetDemo: () => void;
@@ -221,9 +231,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, user: { ...s.user, vehicle } }));
   }, []);
 
-  const updateUser = useCallback((patch: Partial<Pick<User, "name" | "email" | "role">>) => {
-    setState((s) => ({ ...s, user: { ...s.user, ...patch } }));
+  // There is deliberately no way to set user.role from the client — only a request for review.
+  const requestStatusChange = useCallback((to: Role, reason: string) => {
+    setState((s) => ({ ...s, statusRequest: { to, reason, requestedAt: new Date().toISOString() } }));
   }, []);
+
+  const cancelStatusRequest = useCallback(() => setState((s) => ({ ...s, statusRequest: null })), []);
 
   const setDefaultPayment = useCallback((p: PaymentMethodId) => setState((s) => ({ ...s, defaultPayment: p })), []);
   const setTheme = useCallback((t: ThemePref) => setState((s) => ({ ...s, theme: t })), []);
@@ -240,7 +253,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     endSession,
     toggleFavorite,
     updateVehicle,
-    updateUser,
+    requestStatusChange,
+    cancelStatusRequest,
     setDefaultPayment,
     setTheme,
     resetDemo,
