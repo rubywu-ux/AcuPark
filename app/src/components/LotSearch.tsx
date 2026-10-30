@@ -27,9 +27,12 @@ export default function LotSearch({
   onPick,
   onPickPlace,
   onQuery,
+  hint,
   className,
 }: {
   placeholder: string;
+  /** Quiet label inside the field's right edge (e.g. the city), hidden while typing. */
+  hint?: string;
   onPick: (lot: ParkingLot) => void;
   onPickPlace?: (place: CampusPlace) => void;
   onQuery?: (q: string) => void;
@@ -77,6 +80,11 @@ export default function LotSearch({
           aria-label={placeholder}
           enterKeyHint="search"
         />
+        {hint && !q && !focused && (
+          <span className="inline-flex items-center gap-1 shrink-0 text-[13px] text-[#8A8694]">
+            <MapPin size={13} /> {hint}
+          </span>
+        )}
         {q && (
           <button
             aria-label="Clear search"

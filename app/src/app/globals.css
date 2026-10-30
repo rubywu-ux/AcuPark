@@ -47,6 +47,10 @@
   color-scheme: dark;
 }
 
+:root {
+  --nav-h: 60px; /* bottom nav bar, excluding the safe area */
+}
+
 html,
 body {
   background: rgb(var(--surface));

@@ -70,7 +70,7 @@ export default function Home() {
 
   return (
     <main className="min-h-[100dvh] bg-bg">
-      <header className="bg-band text-white px-6 pt-[max(env(safe-area-inset-top),28px)] pb-7 rounded-b-[28px]">
+      <header className="bg-band text-white px-6 pt-[max(env(safe-area-inset-top),28px)] pb-7">
         <h1 className="text-[34px] font-medium tracking-tight">Hello, {firstName}</h1>
         <p className="text-white/70 text-[15px] mt-1 mb-5">
           {session ? "You're parked. We'll keep an eye on the clock." : "Ready to park?"}
