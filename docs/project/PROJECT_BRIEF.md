@@ -25,7 +25,8 @@
 - [ ] Python / FastAPI
 
 **Maps:**
-- [x] Google Maps JS API (with mock markers)
+- [ ] Google Maps JS API (with mock markers) — *replaced by Leaflet + OpenStreetMap, no API key needed*
+- [x] Leaflet + OpenStreetMap tiles, with real UW lot positions
 
 ## 4. Design & Style
 **What should it look like?**
@@ -33,3 +34,16 @@
 
 ## 5. The "Golden Prompt"
 *Once you fill out the above, we will generate a master prompt below that you can use to bootstrap the entire project.*
+
+
+## 6. Current status (October 2026)
+
+Everything in section 2 is built and working end to end with mock data. Since the brief, the app has also gained:
+
+- **Three ways to pay**: *Pay ahead* (auto-pay on arrival with an "All set, parking paid!" notification), *I'm here* (scan, choose duration, pay on one screen), and *search to pay now* by lot number.
+- **Campus building search** that lists nearby lots by walking time with a *Best match*.
+- **Real UW lots** (N01, N02, N05, N22, E1, E12, E19, Padelford Garage) at their OpenStreetMap positions.
+- **Verified campus status** that can only change through a reviewed request.
+- **Multiple saved vehicles**, a draggable lots drawer, drag-to-dismiss lot cards, and Auto / Light / Dark themes.
+
+See [USER_FLOWS.md](USER_FLOWS.md) for the flows step by step.

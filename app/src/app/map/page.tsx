@@ -132,7 +132,7 @@ function MapScreen() {
       <div className="absolute top-0 inset-x-0 z-[1000]">
         <header className="bg-band text-white px-5 pt-[max(env(safe-area-inset-top),14px)] pb-4 rounded-b-[24px] shadow-lift">
           <div className="flex justify-end mb-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 h-7 text-[12px] font-medium">
+            <span className="inline-flex items-center gap-1 h-7 text-[13px] font-medium text-white/60">
               <MapPin size={13} /> {CITY_LABEL}
             </span>
           </div>
