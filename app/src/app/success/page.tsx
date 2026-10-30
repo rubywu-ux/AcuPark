@@ -13,10 +13,14 @@ function SuccessScreen() {
   const s = session?.id === params.get("s") ? session : null;
   const lot = getLot(s?.lotId);
 
+  // Opened from an auto-pay notification: stay on the receipt until the driver is done reading.
+  const review = params.get("review") === "1";
+
   useEffect(() => {
+    if (review) return;
     const t = setTimeout(() => router.replace("/"), 4200);
     return () => clearTimeout(t);
-  }, [router]);
+  }, [router, review]);
 
   return (
     <main
@@ -52,7 +56,7 @@ function SuccessScreen() {
       </svg>
 
       <div className="animate-fade-up" style={{ animationDelay: "0.8s" }}>
-        <h1 className="text-[30px] font-semibold mt-8">You&apos;re all set</h1>
+        <h1 className="text-[30px] font-semibold mt-8">{review ? "All set, parking paid!" : "You’re all set"}</h1>
         {s && lot ? (
           <>
             <p className="text-white/85 text-[17px] mt-2">
@@ -66,6 +70,11 @@ function SuccessScreen() {
           <p className="text-white/85 text-[17px] mt-2">Payment complete.</p>
         )}
         <p className="text-white/60 text-[13px] mt-10">We&apos;ll remind you 10 minutes before time runs out.</p>
+        {review && (
+          <p className="mt-6 inline-block rounded-full bg-white text-success px-6 h-11 leading-[44px] text-[15px] font-semibold">
+            Done
+          </p>
+        )}
       </div>
     </main>
   );

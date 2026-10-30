@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
-import { ToastProvider } from "@/components/ui";
+import { NotificationProvider, ToastProvider } from "@/components/ui";
 import { AppProvider } from "@/lib/store";
 import { THEME_KEY } from "@/lib/theme";
 
@@ -37,7 +37,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="font-sans antialiased">
         <AppProvider>
           <ToastProvider>
-            <AppShell>{children}</AppShell>
+            <NotificationProvider>
+              <AppShell>{children}</AppShell>
+            </NotificationProvider>
           </ToastProvider>
         </AppProvider>
       </body>

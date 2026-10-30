@@ -10,12 +10,24 @@ import {
   Session,
   User,
   Vehicle,
+  LOTS,
+  USER_LOCATION,
+  availabilityAt,
+  distanceKm,
   getLot,
   priceFor,
+  spotsFor,
   uid,
 } from "@/services/mockData";
 
 export type ThemePref = "system" | "light" | "dark";
+
+/** "Pay ahead": armed before arriving; pays automatically once the app detects arrival at a lot. */
+export interface AutoPay {
+  hours: number;
+  payment: PaymentMethodId;
+  armedAt: string;
+}
 
 /** Status changes affect pricing, so they go to campus parking for review instead of applying instantly. */
 export interface StatusRequest {
@@ -35,6 +47,7 @@ interface AppState {
   defaultPayment: PaymentMethodId;
   theme: ThemePref;
   statusRequest: StatusRequest | null;
+  autoPay: AutoPay | null;
   /** Saved vehicles; the active one is exposed as user.vehicle for scans and bookings. */
   vehicles: SavedVehicle[];
   activeVehicleId: string;
@@ -54,6 +67,7 @@ const initialState = (): AppState => ({
   defaultPayment: "apple-pay",
   theme: "system",
   statusRequest: null,
+  autoPay: null,
   vehicles: [{ id: "veh_default", ...DEFAULT_USER.vehicle }],
   activeVehicleId: "veh_default",
 });
@@ -73,6 +87,13 @@ interface Store extends AppState {
   reserve: (input: { lotId: string; spotId: string; starts: Date[]; hours: number }) => Reservation[];
   cancelReservation: (id: string) => void;
   checkIn: (input: CheckInInput) => Session;
+  armAutoPay: (hours: number, payment: PaymentMethodId) => void;
+  cancelAutoPay: () => void;
+  /**
+   * Arrival detected: pay with the armed auto-pay settings. Uses the given lot (or the
+   * reservation's), otherwise the nearest lot with room, and the first open stall there.
+   */
+  runAutoPay: (at?: { lotId?: string; reservationId?: string }) => Session | null;
   extendSession: (minutes: number) => number;
   endSession: () => void;
   toggleFavorite: (lotId: string) => void;
@@ -219,6 +240,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.reservations, state.user.role]
   );
 
+  const armAutoPay = useCallback((hours: number, payment: PaymentMethodId) => {
+    setState((s) => ({ ...s, autoPay: { hours, payment, armedAt: new Date().toISOString() } }));
+  }, []);
+
+  const cancelAutoPay = useCallback(() => setState((s) => ({ ...s, autoPay: null })), []);
+
+  const runAutoPay: Store["runAutoPay"] = useCallback(
+    (at) => {
+      const plan = state.autoPay;
+      if (!plan) return null;
+      const reservation = state.reservations.find((r) => r.id === at?.reservationId && r.status === "upcoming");
+      const now = new Date();
+      const lot =
+        getLot(reservation?.lotId ?? at?.lotId) ??
+        [...LOTS]
+          .filter((l) => availabilityAt(l, now).open > 0)
+          .sort((a, b) => distanceKm(USER_LOCATION, a.location) - distanceKm(USER_LOCATION, b.location))[0];
+      if (!lot) return null;
+      const spotId = reservation?.spotId ?? spotsFor(lot, now).find((sp) => !sp.occupied)?.id ?? "A1";
+      const session = checkIn({
+        lotId: lot.id,
+        spotId,
+        hours: plan.hours,
+        reservationId: reservation?.id,
+        payment: plan.payment,
+      });
+      setState((s) => ({ ...s, autoPay: null }));
+      return session;
+    },
+    [state.autoPay, state.reservations, checkIn]
+  );
+
   const extendSession = useCallback(
     (minutes: number) => {
       const s = state.session;
@@ -306,6 +359,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     reserve,
     cancelReservation,
     checkIn,
+    armAutoPay,
+    cancelAutoPay,
+    runAutoPay,
     extendSession,
     endSession,
     toggleFavorite,
