@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
@@ -210,70 +210,134 @@ function LotSheet({ lot, place, onClose }: { lot: ParkingLot; place: CampusPlace
   const km = distanceKm(USER_LOCATION, lot.location);
   const saved = favorites.includes(lot.id);
 
+  // Drag down to dismiss, like a native sheet: past the threshold (or a quick flick) it closes,
+  // otherwise it springs back. Upward drags only stretch a little.
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const suppressClick = useRef(false);
+
+  const dismiss = () => {
+    setClosing(true);
+    setTimeout(onClose, 220);
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const id = e.pointerId;
+    const startY = e.clientY;
+    let lastY = startY;
+    let lastT = e.timeStamp;
+    let v = 0;
+    let moved = false;
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      const dy = ev.clientY - startY;
+      if (!moved && Math.abs(dy) < 6) return;
+      if (!moved) {
+        moved = true;
+        setDragging(true);
+      }
+      v = (ev.clientY - lastY) / Math.max(1, ev.timeStamp - lastT);
+      lastY = ev.clientY;
+      lastT = ev.timeStamp;
+      setDragY(dy > 0 ? dy : dy * 0.2);
+    };
+    const end = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      if (!moved) return;
+      suppressClick.current = true;
+      setTimeout(() => (suppressClick.current = false), 80);
+      setDragging(false);
+      if (lastY - startY > 110 || v > 0.6) dismiss();
+      else setDragY(0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  };
+
   return (
     <section
       key={lot.id}
-      className="absolute bottom-0 inset-x-0 z-[1000] bg-band text-white rounded-t-[28px] shadow-sheet px-5 pt-3 pb-5 animate-sheet-up"
+      className="absolute bottom-0 inset-x-0 z-[1000] touch-none select-none"
+      style={{
+        transform: closing ? "translateY(110%)" : `translateY(${dragY}px)`,
+        transition: dragging ? "none" : "transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)",
+      }}
       aria-label={`${lot.name} details`}
+      onPointerDown={onPointerDown}
+      onClickCapture={(e) => {
+        if (!suppressClick.current) return;
+        suppressClick.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
-      <div className="mx-auto h-1 w-10 rounded-full bg-white/40 mb-3" />
-      <div className="relative h-[150px] rounded-[20px] overflow-hidden border border-white/30">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={lot.photo} alt={`${lot.name} photo`} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-        <p className="absolute left-4 bottom-3 text-[24px] font-light tracking-wide">
-          {displayTitle(lot)}
-        </p>
-        <div className="absolute right-2 top-2 flex gap-1">
-          <IconButton
-            label={saved ? "Remove from saved" : "Save lot"}
-            onClick={() => toggleFavorite(lot.id)}
-            className="bg-black/35 backdrop-blur"
-          >
-            <Heart size={20} className={saved ? "fill-accent text-accent" : ""} />
-          </IconButton>
-          <IconButton label="Close" onClick={onClose} className="bg-black/35 backdrop-blur">
-            <X size={20} />
-          </IconButton>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-4">
-        <div>
-          <p className="text-[13px] text-white/70">{lot.address}</p>
-          <p className="text-[13px] text-white/70 flex items-center gap-1 mt-0.5">
-            <Clock size={12} /> {lot.hours}
+      {/* Inner wrapper owns the slide-in animation so it doesn't fight the drag transform. */}
+      <div className="bg-band text-white rounded-t-[28px] shadow-sheet px-5 pt-3 pb-5 animate-sheet-up">
+        <div className="mx-auto h-1 w-10 rounded-full bg-white/40 mb-3" />
+        <div className="relative h-[150px] rounded-[20px] overflow-hidden border border-white/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lot.photo} alt={`${lot.name} photo`} draggable={false} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <p className="absolute left-4 bottom-3 text-[24px] font-light tracking-wide">
+            {displayTitle(lot)}
           </p>
-        </div>
-        <span className="rounded-full bg-white p-0.5 shrink-0">
-          <StatusPill status={status} open={open} total={total} />
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-        {[
-          { k: "Rate", v: lot.ratePerHour ? `${formatMoney(rateFor(lot, user.role))}/hr` : "Free" },
-          { k: "Drive", v: `${driveMinutes(km)} min` },
-          place
-            ? { k: "Walk", v: `${walkMinutes(distanceKm(place.location, lot.location))} min` }
-            : { k: "Distance", v: `${km.toFixed(1)} km` },
-        ].map((x) => (
-          <div key={x.k} className="rounded-2xl bg-white/10 py-2.5">
-            <p className="text-[12px] text-white/60">{x.k}</p>
-            <p className="text-[16px] font-semibold">{x.v}</p>
+          <div className="absolute right-2 top-2 flex gap-1">
+            <IconButton
+              label={saved ? "Remove from saved" : "Save lot"}
+              onClick={() => toggleFavorite(lot.id)}
+              className="bg-black/35 backdrop-blur"
+            >
+              <Heart size={20} className={saved ? "fill-accent text-accent" : ""} />
+            </IconButton>
+            <IconButton label="Close" onClick={dismiss} className="bg-black/35 backdrop-blur">
+              <X size={20} />
+            </IconButton>
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3 mt-4">
-        <Button variant="brand" className="!bg-brand-deep" href={`/navigate?lot=${lot.id}`} aria-disabled={status === "Full"}>
-          <Navigation size={17} /> Navigate
-        </Button>
-        <Button href={`/reserve?lot=${lot.id}`}>
-          <CalendarClock size={18} /> Reserve
-        </Button>
+        <div className="flex items-center justify-between mt-4">
+          <div>
+            <p className="text-[13px] text-white/70">{lot.address}</p>
+            <p className="text-[13px] text-white/70 flex items-center gap-1 mt-0.5">
+              <Clock size={12} /> {lot.hours}
+            </p>
+          </div>
+          <span className="rounded-full bg-white p-0.5 shrink-0">
+            <StatusPill status={status} open={open} total={total} />
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+          {[
+            { k: "Rate", v: lot.ratePerHour ? `${formatMoney(rateFor(lot, user.role))}/hr` : "Free" },
+            { k: "Drive", v: `${driveMinutes(km)} min` },
+            place
+              ? { k: "Walk", v: `${walkMinutes(distanceKm(place.location, lot.location))} min` }
+              : { k: "Distance", v: `${km.toFixed(1)} km` },
+          ].map((x) => (
+            <div key={x.k} className="rounded-2xl bg-white/10 py-2.5">
+              <p className="text-[12px] text-white/60">{x.k}</p>
+              <p className="text-[16px] font-semibold">{x.v}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mt-4">
+          <Button variant="brand" className="!bg-brand-deep" href={`/navigate?lot=${lot.id}`} aria-disabled={status === "Full"}>
+            <Navigation size={17} /> Navigate
+          </Button>
+          <Button href={`/reserve?lot=${lot.id}`}>
+            <CalendarClock size={18} /> Reserve
+          </Button>
+        </div>
+        {status === "Full" && <p className="text-[13px] text-white/70 mt-2 text-center">Full right now — you can still reserve for later.</p>}
       </div>
-      {status === "Full" && <p className="text-[13px] text-white/70 mt-2 text-center">Full right now — you can still reserve for later.</p>}
     </section>
   );
 }

@@ -47,9 +47,19 @@ export default function LotsDrawer({
   const [height, setHeight] = useState(PEEK);
   const [dragging, setDragging] = useState(false);
   const [tab, setTab] = useState<Tab>("recents");
-  const drag = useRef<{ startY: number; startH: number; lastY: number; lastT: number; v: number; moved: boolean } | null>(
-    null
-  );
+  const drag = useRef<{
+    startY: number;
+    startH: number;
+    lastY: number;
+    lastT: number;
+    v: number;
+    moved: boolean;
+    /** A press on a button shouldn't also toggle the sheet when released without moving. */
+    onButton: boolean;
+  } | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Swallows the click a browser fires at the end of a drag, so dragging over a row doesn't open it.
+  const suppressClick = useRef(false);
 
   const snaps = [PEEK, Math.round(containerH * 0.52), Math.max(PEEK, containerH - TOP_GAP)];
 
@@ -74,55 +84,150 @@ export default function LotsDrawer({
   }, [near, containerH]);
 
   const snapTo = useCallback((h: number) => setHeight(h), []);
+  const full = snaps[snaps.length - 1];
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    // Let buttons inside the header (tabs, chevron) receive their own clicks.
-    if ((e.target as HTMLElement).closest("[data-no-drag]")) return;
-    drag.current = { startY: e.clientY, startH: height, lastY: e.clientY, lastT: e.timeStamp, v: 0, moved: false };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
+  // One gesture engine shared by the header (pointer events) and the list (touch + mouse).
+  // Refs keep the native listeners below from reading stale state.
+  const live = useRef({ height, snaps });
+  live.current = { height, snaps };
 
-  const onPointerMove = (e: React.PointerEvent) => {
+  const begin = useCallback((y: number, t: number, onButton = false) => {
+    drag.current = { startY: y, startH: live.current.height, lastY: y, lastT: t, v: 0, moved: false, onButton };
+  }, []);
+
+  /** Returns true once the gesture is moving the sheet. */
+  const update = useCallback((y: number, t: number) => {
     const d = drag.current;
-    if (!d) return;
-    const dy = d.startY - e.clientY; // up = positive
-    if (!d.moved && Math.abs(dy) < DRAG_THRESHOLD) return;
+    if (!d) return false;
+    const dy = d.startY - y; // up = positive
+    if (!d.moved && Math.abs(dy) < DRAG_THRESHOLD) return false;
     if (!d.moved) {
       d.moved = true;
       setDragging(true);
     }
-    const dt = Math.max(1, e.timeStamp - d.lastT);
-    d.v = (d.lastY - e.clientY) / dt;
-    d.lastY = e.clientY;
-    d.lastT = e.timeStamp;
+    const dt = Math.max(1, t - d.lastT);
+    d.v = (d.lastY - y) / dt;
+    d.lastY = y;
+    d.lastT = t;
+    const { snaps: sn } = live.current;
     // Rubber-band slightly past the ends instead of stopping dead.
     const raw = d.startH + dy;
-    const min = snaps[0];
-    const max = snaps[snaps.length - 1];
-    const h = raw < min ? min - (min - raw) * 0.25 : raw > max ? max + (raw - max) * 0.25 : raw;
-    setHeight(h);
-  };
+    const min = sn[0];
+    const max = sn[sn.length - 1];
+    setHeight(raw < min ? min - (min - raw) * 0.25 : raw > max ? max + (raw - max) * 0.25 : raw);
+    return true;
+  }, []);
 
-  const onPointerUp = () => {
+  const finish = useCallback((tapToggles: boolean) => {
     const d = drag.current;
     drag.current = null;
     if (!d) return;
     setDragging(false);
+    const { height: h, snaps: sn } = live.current;
     if (!d.moved) {
       // Plain tap on the header: open to half, or close back to peek.
-      snapTo(height > PEEK + 10 ? PEEK : snaps[1]);
+      if (tapToggles && !d.onButton) setHeight(h > PEEK + 10 ? PEEK : sn[1]);
       return;
     }
-    let target = snaps.reduce((best, s, i) => (Math.abs(s - height) < Math.abs(snaps[best] - height) ? i : best), 0);
+    suppressClick.current = true;
+    setTimeout(() => (suppressClick.current = false), 80);
+    let target = sn.reduce((best, s, i) => (Math.abs(s - h) < Math.abs(sn[best] - h) ? i : best), 0);
     // A flick moves at least one stop in its direction, but never short of where the finger got to.
     if (d.v > FLICK_VELOCITY) {
-      const up = snaps.findIndex((s) => s > d.startH + 1);
-      target = Math.max(target, up === -1 ? snaps.length - 1 : up);
+      const up = sn.findIndex((s) => s > d.startH + 1);
+      target = Math.max(target, up === -1 ? sn.length - 1 : up);
     } else if (d.v < -FLICK_VELOCITY) {
-      target = Math.min(target, Math.max(0, snaps.findLastIndex((s) => s < d.startH - 1)));
+      target = Math.min(target, Math.max(0, sn.findLastIndex((s) => s < d.startH - 1)));
     }
-    snapTo(snaps[target]);
+    setHeight(sn[target]);
+  }, []);
+
+  // Header: follow the pointer on the window rather than capturing it, so a tap on a tab or
+  // button still lands as a click, while a drag keeps tracking after the finger leaves the header.
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    begin(e.clientY, e.timeStamp, !!(e.target as HTMLElement).closest("button"));
+    const id = e.pointerId;
+    const move = (ev: PointerEvent) => ev.pointerId === id && update(ev.clientY, ev.timeStamp);
+    const end = (ev: PointerEvent) => {
+      if (ev.pointerId !== id) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      finish(true);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
   };
+
+  // List: below full height any drag moves the sheet; at full height the list scrolls,
+  // and pulling down from the very top of the list closes the sheet (like a native sheet).
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    let mode: "undecided" | "sheet" | "scroll" = "undecided";
+    let startScroll = 0;
+
+    const decide = (y: number) => {
+      const d = drag.current;
+      if (!d || mode !== "undecided") return;
+      const dy = d.startY - y;
+      if (Math.abs(dy) < DRAG_THRESHOLD) return;
+      const { snaps: sn } = live.current;
+      const atFull = d.startH >= sn[sn.length - 1] - 2;
+      mode = !atFull || (dy < 0 && startScroll <= 0) ? "sheet" : "scroll";
+      if (mode === "scroll") drag.current = null;
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      mode = "undecided";
+      startScroll = el.scrollTop;
+      begin(e.touches[0].clientY, e.timeStamp);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0].clientY;
+      decide(y);
+      if (mode !== "sheet") return;
+      if (e.cancelable) e.preventDefault();
+      update(y, e.timeStamp);
+    };
+    const onTouchEnd = () => {
+      if (mode === "sheet") finish(false);
+      else drag.current = null;
+      mode = "undecided";
+    };
+
+    // Mouse (desktop preview): drag anywhere on the list; the wheel still scrolls it.
+    const onMouseMove = (e: MouseEvent) => update(e.clientY, e.timeStamp);
+    const onMouseUp = () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      finish(false);
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 0 || drag.current) return;
+      begin(e.clientY, e.timeStamp);
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+    el.addEventListener("mousedown", onMouseDown);
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+      el.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [begin, update, finish]);
 
   const ids = tab === "recents" ? recents : favorites;
   const nearby = near
@@ -142,13 +247,16 @@ export default function LotsDrawer({
         !dragging && "transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
       )}
       style={{ height }}
+      onClickCapture={(e) => {
+        if (!suppressClick.current) return;
+        suppressClick.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+      }}
     >
       {/* Drag area: handle, title and tabs */}
       <div
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
         className="shrink-0 px-5 pt-2.5 pb-3 cursor-grab active:cursor-grabbing select-none touch-none"
       >
         <div className="mx-auto h-1.5 w-11 rounded-full bg-white/35" />
@@ -163,7 +271,6 @@ export default function LotsDrawer({
           </div>
           {near && (
             <button
-              data-no-drag
               aria-label={`Clear ${near.name}`}
               onClick={onClearNear}
               className="ml-auto mr-2 w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
@@ -172,7 +279,6 @@ export default function LotsDrawer({
             </button>
           )}
           <button
-            data-no-drag
             aria-label={expanded ? "Collapse" : "Expand"}
             aria-expanded={expanded}
             onClick={() => snapTo(expanded ? PEEK : snaps[1])}
@@ -183,7 +289,7 @@ export default function LotsDrawer({
         </div>
 
         {!near && (
-        <div data-no-drag className="mt-3 grid grid-cols-2 p-1 rounded-xl bg-black/20" role="tablist">
+        <div className="mt-3 grid grid-cols-2 p-1 rounded-xl bg-black/20" role="tablist">
           {(
             [
               { id: "recents", label: "Recents", count: recents.length },
@@ -220,8 +326,11 @@ export default function LotsDrawer({
 
       {/* List */}
       <div
+        ref={listRef}
         className={clsx(
-          "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 transition-opacity",
+          "flex-1 min-h-0 overscroll-contain px-4 pb-4 transition-opacity select-none",
+          // Only scrolls when fully open; below that, every drag moves the sheet.
+          height >= full - 2 ? "overflow-y-auto touch-pan-y" : "overflow-hidden touch-none",
           expanded ? "opacity-100" : "opacity-0 pointer-events-none"
         )}
         role="tabpanel"

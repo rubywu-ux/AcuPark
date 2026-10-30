@@ -56,7 +56,7 @@ export default function Home() {
           {session ? "You're parked. We'll keep an eye on the clock." : "Ready to park?"}
         </p>
         <LotSearch
-          placeholder="Search building or lot #"
+          placeholder="Not scanning? Search by lot #"
           onPick={(lot) => router.push(`/map?lot=${lot.id}`)}
           onPickPlace={(place) => router.push(`/map?place=${place.id}`)}
         />
