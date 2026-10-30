@@ -14,6 +14,10 @@ export interface Vehicle {
   color: string;
 }
 
+export interface SavedVehicle extends Vehicle {
+  id: string;
+}
+
 export interface User {
   id: string;
   name: string;

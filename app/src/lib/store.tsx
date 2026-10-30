@@ -6,6 +6,7 @@ import {
   PaymentMethodId,
   Reservation,
   Role,
+  SavedVehicle,
   Session,
   User,
   Vehicle,
@@ -34,6 +35,9 @@ interface AppState {
   defaultPayment: PaymentMethodId;
   theme: ThemePref;
   statusRequest: StatusRequest | null;
+  /** Saved vehicles; the active one is exposed as user.vehicle for scans and bookings. */
+  vehicles: SavedVehicle[];
+  activeVehicleId: string;
 }
 
 const STORAGE_KEY = "acupark:v2";
@@ -50,6 +54,8 @@ const initialState = (): AppState => ({
   defaultPayment: "apple-pay",
   theme: "system",
   statusRequest: null,
+  vehicles: [{ id: "veh_default", ...DEFAULT_USER.vehicle }],
+  activeVehicleId: "veh_default",
 });
 
 export interface CheckInInput {
@@ -70,7 +76,12 @@ interface Store extends AppState {
   extendSession: (minutes: number) => number;
   endSession: () => void;
   toggleFavorite: (lotId: string) => void;
+  /** Edits the vehicle currently in use (e.g. fixing a misread plate at check-in). */
   updateVehicle: (v: Vehicle) => void;
+  /** Adds a vehicle when id is null, otherwise updates it. Returns its id. */
+  saveVehicle: (id: string | null, v: Vehicle) => string;
+  removeVehicle: (id: string) => void;
+  setActiveVehicle: (id: string) => void;
   requestStatusChange: (to: Role, reason: string) => void;
   cancelStatusRequest: () => void;
   setDefaultPayment: (p: PaymentMethodId) => void;
@@ -93,7 +104,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as AppState;
-        if (saved.version === 2) setState({ ...initialState(), ...saved });
+        if (saved.version === 2) {
+          // Older saves only had user.vehicle — turn it into the first saved vehicle.
+          if (!saved.vehicles?.length) {
+            saved.vehicles = [{ id: "veh_default", ...saved.user.vehicle }];
+            saved.activeVehicleId = "veh_default";
+          }
+          setState({ ...initialState(), ...saved });
+        }
       }
     } catch {
       // Corrupt or blocked storage — fall back to defaults.
@@ -228,8 +246,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateVehicle = useCallback((vehicle: Vehicle) => {
-    setState((s) => ({ ...s, user: { ...s.user, vehicle } }));
+    setState((s) => ({
+      ...s,
+      vehicles: s.vehicles.map((v) => (v.id === s.activeVehicleId ? { ...vehicle, id: v.id } : v)),
+    }));
   }, []);
+
+  const saveVehicle = useCallback((id: string | null, vehicle: Vehicle) => {
+    const vid = id ?? uid("veh");
+    setState((s) => ({
+      ...s,
+      vehicles: id ? s.vehicles.map((v) => (v.id === id ? { ...vehicle, id } : v)) : [...s.vehicles, { ...vehicle, id: vid }],
+    }));
+    return vid;
+  }, []);
+
+  const removeVehicle = useCallback((id: string) => {
+    setState((s) => {
+      // Always keep at least one vehicle to scan and book with.
+      if (s.vehicles.length <= 1) return s;
+      const vehicles = s.vehicles.filter((v) => v.id !== id);
+      return { ...s, vehicles, activeVehicleId: s.activeVehicleId === id ? vehicles[0].id : s.activeVehicleId };
+    });
+  }, []);
+
+  const setActiveVehicle = useCallback((id: string) => setState((s) => ({ ...s, activeVehicleId: id })), []);
 
   // There is deliberately no way to set user.role from the client — only a request for review.
   const requestStatusChange = useCallback((to: Role, reason: string) => {
@@ -242,8 +283,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setTheme = useCallback((t: ThemePref) => setState((s) => ({ ...s, theme: t })), []);
   const resetDemo = useCallback(() => setState((s) => ({ ...initialState(), theme: s.theme })), []);
 
+  const activeVehicle = state.vehicles.find((v) => v.id === state.activeVehicleId) ?? state.vehicles[0];
+
   const value: Store = {
     ...state,
+    user: { ...state.user, vehicle: activeVehicle },
     ready,
     upcoming,
     reserve,
@@ -253,6 +297,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     endSession,
     toggleFavorite,
     updateVehicle,
+    saveVehicle,
+    removeVehicle,
+    setActiveVehicle,
     requestStatusChange,
     cancelStatusRequest,
     setDefaultPayment,
