@@ -4,17 +4,26 @@ AcuPark is a modern, mobile-first parking management application built with Next
 
 ## 🌟 Features
 
--   **AI Quick Scan**: Manual trigger camera scan for license plates (simulated) for quick entry/exit.
--   **Interactive Map**: Real-time map using Leaflet with CartoDB Voyager tiles.
-    -   **Color-Coded Availability**: Green (Available), Orange (Busy), Red (Full).
-    -   **Smart Filtering**: Filter by "Near Me", "Low Cost", etc.
-    -   **Navigation**: Direct integration with Google Maps for directions.
-    -   **Saved Lots Drawer**: Slide-up drawer to quickly access "Recents" and "Favorites" parking locations.
--   **Smart Reservations**: 
-    -   Multi-date selection support.
-    -   Smart pricing calculation.
-    -   Validation to prevent booking past dates.
--   **User Dashboard**: View active reservations and vehicle details.
+-   **End-to-end flow**: Map → lot details → reserve → confirmed → navigate → arrive & scan → pay → live parking timer.
+-   **AI Quick Scan**: Snap your plate to check in on arrival (simulated recognition). Works with a reservation or as a drive-up; falls back to a sample photo when no camera is available.
+-   **Interactive Map**: Leaflet with OpenStreetMap tiles.
+    -   **Live availability pins**: open-stall counts colored Available / Busy / Full.
+    -   **Filters & search**: Near Me, Low Cost, Free Parking, Late Hours, Walkability, EV Charging; search by lot code.
+    -   **Recents & Saved**: slide-up drawer of lot photos; heart a lot to save it.
+-   **Reservations**:
+    -   Pick a stall on an aisle layout (Entry → Exit), then dates, start time and duration.
+    -   Role-based pricing (Student / Faculty / Visitor), overlap and past-time validation, cancel anytime before start.
+    -   "Starting in" countdown and "Take Me There".
+-   **Navigation**: simulated turn-by-turn drive with traffic-light count and a live "spot held · N open" badge (the "anxiety reducer"), plus a Google Maps hand-off.
+-   **Payment (UI only)**: Apple Pay or saved card, then a "Paid" confirmation.
+-   **Active session**: time remaining, +30 min extension (charged at your rate), 10-minute reminder, end parking, history.
+-   **Settings**: campus status, vehicle, default payment, Auto / Light / Dark theme, reset demo data.
+
+All state is kept in the browser (`localStorage`) through a single store in `app/src/lib/store.tsx`; mock lots and helpers live in `app/src/services/mockData.ts`, shaped for a later Supabase swap.
+
+## 🎨 Design System
+
+Colors are CSS variables in `app/src/app/globals.css` (light and `[data-theme="dark"]`), exposed to Tailwind in `app/tailwind.config.ts` as `brand`, `accent`, `ink`, `muted`, `surface`, `card`, `line`, `success`, `warning`, `danger`. Shared building blocks (buttons, cards, sheets, chips, the purple top bar) are in `app/src/components/ui.tsx`. Visuals follow the Figma "Central" page.
 
 ## 🎨 Figma Integration (MCP)
 
@@ -116,9 +125,13 @@ iOS and Android block camera access on insecure (HTTP) connections. To test the 
 
 ## 📱 Usage
 
--   **Home**: Grant camera permissions to enable the AI Scan feature.
--   **Map**: Click on parking pins to view details and availability.
--   **Reservation**: Select a lot and time to book a spot.
+1.  **Map**: tap a pin (or search a code like `N06`) → **Reserve**.
+2.  Pick a stall, date, time and duration → **Start Reservation**.
+3.  **Take Me There** → **Start** (use **Skip ahead** to speed up the demo drive).
+4.  On arrival, **Scan & check in** → **Looks Good!** → **Confirm Payment**.
+5.  Back on **Home**, watch the timer, tap **+30 min**, or **End parking**.
+
+Or skip the reservation: tap **AI Quick Scan** on Home to check in at the nearest open lot. **Settings → Reset demo data** starts over.
 
 ## 📚 Documentation
 
