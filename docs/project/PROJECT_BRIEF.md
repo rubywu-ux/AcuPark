@@ -45,5 +45,6 @@ Everything in section 2 is built and working end to end with mock data. Since th
 - **Real UW lots** (N01, N02, N05, N22, E1, E12, E19, Padelford Garage) at their OpenStreetMap positions.
 - **Verified campus status** that can only change through a reviewed request.
 - **Multiple saved vehicles**, a draggable lots drawer, drag-to-dismiss lot cards, and Auto / Light / Dark themes.
+- **A branded launch screen**: on UW purple, a sticker-style Dubs barks "Go Dawgs!" above the refreshed AcuPark logo, on every open.
 
 See [USER_FLOWS.md](USER_FLOWS.md) for the flows step by step.

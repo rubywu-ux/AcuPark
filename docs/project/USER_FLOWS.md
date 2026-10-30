@@ -14,6 +14,17 @@ The bottom nav only shows on these three; flow screens are full-screen.
 
 ---
 
+## 0. Launch
+
+Every time the app opens or the page is refreshed, it starts on the splash (about 3.4 seconds), then fades into whatever route was loaded:
+
+1. Flat UW purple screen; **Dubs** springs in as a retro sticker and sits.
+2. He barks once (head snaps forward, jaw opens, ears flick, tail wags) and a slanted **Go Dawgs!** pops out beside him.
+3. The AcuPark logo, wordmark and *A campus parking app* rise in below.
+4. The splash fades out and the app is ready.
+
+`/preview/splash` replays it on a loop (Replay, Loop, 1× / 0.5× / 0.25×) for design review; the splash itself never covers `/preview` routes.
+
 ## 1. Pay ahead (auto-pay on arrival)
 
 For drivers who want parking handled before they get there.

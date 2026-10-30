@@ -204,6 +204,179 @@ body {
   100% { transform: scale(1.6); opacity: 0; }
 }
 
+/* ---------- Launch splash: Dubs sits, barks once, "Go Dawgs!" pops out ---------- */
+.splash-root {
+  background: #4b2e7e; /* flat UW purple, matched to the brand swatch */
+  animation: splash-out 0.4s cubic-bezier(0.4, 0, 0.2, 1) 3s both;
+}
+@keyframes splash-out {
+  to { opacity: 0; transform: scale(1.03); }
+}
+
+/* Stage: Dubs bottom-centred, with room above him for "Go Dawgs!". */
+.dubs-stage {
+  position: relative;
+  width: 260px;
+  height: 240px;
+  display: grid;
+  place-items: end center;
+}
+/* Every animated SVG part pivots around its own box. */
+.db-root, .db-body, .db-tail, .db-head, .db-ear-l, .db-ear-r, .db-eyes, .db-mouth, .db-jaw {
+  transform-box: fill-box;
+}
+
+/* Springs in and settles with a loose overshoot. */
+.db-root {
+  transform-origin: 50% 100%;
+  animation: db-in 0.75s cubic-bezier(0.2, 0.9, 0.25, 1) 0.1s both;
+}
+@keyframes db-in {
+  0% { opacity: 0; transform: translateY(30px) scale(0.9, 1.08); }
+  45% { opacity: 1; transform: translateY(-6px) scale(1.04, 0.95); }
+  70% { transform: translateY(2px) scale(0.98, 1.02); }
+  100% { transform: none; }
+}
+
+/* Body breathes, then squashes into the bark. */
+.db-body {
+  transform-origin: 50% 100%;
+  animation: db-breathe 1.4s ease-in-out 0.8s 2 alternate, db-body-bark 0.55s cubic-bezier(0.3, 0, 0.3, 1) 0.92s;
+}
+@keyframes db-breathe { to { transform: scale(1.012, 0.99); } }
+@keyframes db-body-bark {
+  0% { transform: none; }
+  25% { transform: scale(1.04, 0.94); }
+  50% { transform: scale(0.97, 1.05) translateY(-3px); }
+  75% { transform: scale(1.01, 0.99); }
+  100% { transform: none; }
+}
+
+/* Tail never stops — happy wag from the base. */
+.db-tail {
+  transform-origin: 0% 95%;
+  animation: db-wag 0.32s ease-in-out 0.3s infinite alternate;
+}
+@keyframes db-wag { from { transform: rotate(-6deg); } to { transform: rotate(10deg); } }
+
+/* Head: little tilt while waiting, rears back, snaps forward on the bark, then wobbles loose. */
+.db-head {
+  transform-origin: 50% 92%;
+  animation: db-head 1.5s cubic-bezier(0.3, 0, 0.3, 1) 0.45s both;
+}
+@keyframes db-head {
+  0% { transform: none; }
+  20% { transform: rotate(-6deg); }
+  34% { transform: rotate(-6deg); }
+  42% { transform: translateY(4px) rotate(-9deg) scale(0.98); }
+  50% { transform: translateY(-10px) rotate(5deg) scale(1.07); }
+  60% { transform: translateY(-7px) rotate(4deg) scale(1.05); }
+  70% { transform: translateY(1px) rotate(-3deg); }
+  80% { transform: rotate(2deg); }
+  90% { transform: rotate(-0.8deg); }
+  100% { transform: none; }
+}
+
+/* Ears perk, flatten back on the bark, then flop forward. */
+.db-ear-l { transform-origin: 70% 100%; animation: db-ear-l 0.8s cubic-bezier(0.3, 0, 0.3, 1) 0.95s both; }
+.db-ear-r { transform-origin: 30% 100%; animation: db-ear-r 0.8s cubic-bezier(0.3, 0, 0.3, 1) 0.98s both; }
+@keyframes db-ear-l { 25% { transform: rotate(-16deg); } 55% { transform: rotate(8deg); } 80% { transform: rotate(-3deg); } }
+@keyframes db-ear-r { 25% { transform: rotate(16deg); } 55% { transform: rotate(-8deg); } 80% { transform: rotate(3deg); } }
+
+/* The bark: jaw drops and the mouth opens, holds a beat, snaps shut. */
+.db-mouth {
+  transform-origin: 50% 0%;
+  transform: scaleY(0);
+  animation: db-mouth 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 1.02s both;
+}
+.db-jaw {
+  transform-origin: 50% 0%;
+  animation: db-jaw 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 1.02s both;
+}
+@keyframes db-mouth {
+  0% { transform: scaleY(0); }
+  22% { transform: scaleY(1.1); }
+  60% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+@keyframes db-jaw {
+  0% { transform: none; }
+  22% { transform: translateY(11px) rotate(-3deg); }
+  60% { transform: translateY(10px); }
+  100% { transform: none; }
+}
+
+/* A happy blink after the bark. */
+.db-eyes {
+  transform-origin: 50% 50%;
+  animation: db-blink 0.2s ease-in-out 1.85s;
+}
+@keyframes db-blink { 50% { transform: scaleY(0.1); } }
+
+/* Bark lines burst from his mouth. */
+.bark-lines {
+  position: absolute;
+  left: 50%;
+  top: 108px;
+  margin-left: 26px;
+  width: 34px;
+  height: 34px;
+  opacity: 0;
+  animation: bark-lines 0.45s ease-out 1.05s both;
+}
+.bark-lines span {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 16px;
+  height: 3px;
+  border-radius: 3px;
+  background: #f0bf3e;
+  transform-origin: 0 50%;
+}
+.bark-lines span:nth-child(1) { transform: rotate(-35deg); }
+.bark-lines span:nth-child(2) { transform: rotate(0deg); }
+.bark-lines span:nth-child(3) { transform: rotate(35deg); }
+@keyframes bark-lines {
+  0% { opacity: 0; transform: translateX(-4px) scale(0.6); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(10px) scale(1.15); }
+}
+
+/* "Go Dawgs!" — slanted, punches out of the bark and stays. */
+.go-dawgs {
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  margin-left: 18px;
+  white-space: nowrap;
+  font-size: 24px;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: #f0bf3e;
+  text-shadow: 0 3px 0 #1c0c38; /* flat retro offset, no blur */
+  transform-origin: 0% 100%;
+  animation: go-dawgs 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) 1.08s both, go-dawgs-float 1.2s ease-in-out 1.7s infinite alternate;
+}
+@keyframes go-dawgs {
+  from { opacity: 0; transform: translate(-40px, 80px) rotate(-18deg) skewX(-10deg) scale(0.2); }
+  to { opacity: 1; transform: rotate(-10deg) skewX(-10deg) scale(1); }
+}
+@keyframes go-dawgs-float {
+  from { transform: rotate(-10deg) skewX(-10deg) translateY(0); }
+  to { transform: rotate(-8deg) skewX(-10deg) translateY(-3px); }
+}
+
+/* Brand lockup rises in under Dubs. */
+.splash-brand {
+  animation: splash-brand-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.45s both;
+}
+@keyframes splash-brand-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
