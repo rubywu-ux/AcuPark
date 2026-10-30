@@ -22,7 +22,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#502E83",
+  // Status-bar tint for Android and older iOS; matches the purple header band in each theme.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#502E83" },
+    { media: "(prefers-color-scheme: dark)", color: "#281A42" },
+  ],
 };
 
 // Resolve the theme before first paint so dark mode doesn't flash light.
