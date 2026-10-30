@@ -4,6 +4,9 @@ AcuPark is a mobile-first campus parking app for the University of Washington, b
 
 ## 🌟 Features
 
+### Launch screen
+Every open or refresh starts on a UW-purple splash: **Dubs** the Husky, drawn as a matte retro sticker, springs in, barks once (jaw, ears, head and tail all move) and a slanted **"Go Dawgs!"** pops out, then the AcuPark logo and *A campus parking app* rise in before the app fades up. Open `/preview/splash` to replay it on a loop, with 0.5× and 0.25× slow motion.
+
 ### Three ways to pay
 | Path | When | How it works |
 |---|---|---|
@@ -36,6 +39,11 @@ All state lives in the browser (`localStorage`) through one store in `app/src/li
 
 Colors are CSS variables in `app/src/app/globals.css` (light and `[data-theme="dark"]`), exposed to Tailwind in `app/tailwind.config.ts` as `brand`, `accent`, `ink`, `muted`, `surface`, `card`, `line`, `success`, `warning`, `danger`. Shared building blocks (buttons, cards, sheets, chips, the purple top bar) are in `app/src/components/ui.tsx`. Visuals follow the Figma "Central" page.
 
+**Brand**
+-   **Logo** (`app/src/components/Logo.tsx`): a rounded triangle carrying a centered parking "P", with the **Acu**Park wordmark. `LogoLockup` comes stacked (splash) or inline (headers), in `onDark` and `onLight` tones.
+-   **Dubs** (`app/src/components/DubsBark.tsx`): an original vector Dubs in layered parts (body, tail, head, ears, eyes, jaw) so CSS can animate each one. A single SVG filter turns him into a die-cut sticker: cream border, flat offset shadow and a fine matte grain. Colors are the app's ink and brand purple with a mustard bandana.
+-   **Splash** (`app/src/components/Splash.tsx`): flat UW purple `#4B2E7E`; timings live in `globals.css` under `.splash-*`, `.db-*`, `.bark-lines` and `.go-dawgs`, and respect *reduce motion*.
+
 ## 🎨 Figma Integration (MCP)
 
 This project uses the **Model Context Protocol (MCP)** to connect directly to Figma. This allows the AI to read design properties (layout, colors, typography) and generate code that matches the design files 1:1.
@@ -51,11 +59,13 @@ This project was built using the **"Vibe Coding"** methodology—a flow-state dr
 
 ## 📱 Screenshots
 
-| Home | I'm here (scan) | Reserve a stall |
+| Launch screen | Home | I'm here (scan) |
 |:---:|:---:|:---:|
-| <img src="app/public/screenshots/home.png" width="220" /> | <img src="app/public/screenshots/scan.png" width="220" /> | <img src="app/public/screenshots/reservation.png" width="220" /> |
-| **Near a building** | **Navigation** | **Pay-now checkout** |
-| <img src="app/public/screenshots/map.png" width="220" /> | <img src="app/public/screenshots/navigation.png" width="220" /> | <img src="app/public/screenshots/payment.png" width="220" /> |
+| <img src="app/public/screenshots/splash.png" width="220" /> | <img src="app/public/screenshots/home.png" width="220" /> | <img src="app/public/screenshots/scan.png" width="220" /> |
+| **Reserve a stall** | **Near a building** | **Navigation** |
+| <img src="app/public/screenshots/reservation.png" width="220" /> | <img src="app/public/screenshots/map.png" width="220" /> | <img src="app/public/screenshots/navigation.png" width="220" /> |
+| **Pay-now checkout** | | |
+| <img src="app/public/screenshots/payment.png" width="220" /> | | |
 
 ## 🛠️ Tech Stack
 
@@ -156,7 +166,7 @@ Back on **Home**, watch the timer, tap **+30 min**, or **End parking**. **Settin
 
 -   **[User flows](docs/project/USER_FLOWS.md)**: every screen and path, step by step.
 -   **[Project brief](docs/project/PROJECT_BRIEF.md)**: original requirements and current status.
--   **[Credits](docs/CREDITS.md)**: photo and map data sources.
+-   **[Credits](docs/CREDITS.md)**: photo, map data and mascot notes.
 -   **[docs/](docs/)**: everything else, including Figma MCP and the Vibe Coding write-up.
 
 ## 🤝 Contributing

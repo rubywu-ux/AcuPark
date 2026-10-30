@@ -4,6 +4,10 @@
 
 Map tiles and lot/building positions © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the Open Database License. Positions for N01, N02, N05, N22, E1, E12, E19, Padelford Garage and key campus buildings come from OpenStreetMap via Nominatim.
 
+## Mascot
+
+Dubs is the University of Washington's Husky mascot; the name and likeness belong to the University of Washington. The splash uses an original vector drawing (`app/src/components/DubsBark.tsx`) made for this student project, not UW artwork, and the app isn't affiliated with or endorsed by UW.
+
 ## Photos
 
 Lot photos in `app/public/lots/`. Photos from Unsplash are used under the [Unsplash License](https://unsplash.com/license), which doesn't require attribution; they're listed here anyway. None of them show the actual UW lots.
