@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { ChevronUp, Clock, Footprints, Heart, X } from "lucide-react";
+import { ChevronUp, Clock, Footprints, Heart, History, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   CampusPlace,
@@ -265,9 +265,20 @@ export default function LotsDrawer({
             <h2 className="text-[17px] font-semibold leading-tight truncate shrink-0 max-w-[65%]">
               {near ? `Near ${near.name}` : "Your lots"}
             </h2>
-            <p className="text-[13px] text-white/60 truncate">
-              {near ? "Closest walk" : `${recents.length} recent · ${favorites.length} saved`}
-            </p>
+            {near ? (
+              <p className="text-[13px] text-white/60 truncate">Closest walk</p>
+            ) : (
+              <p className="flex items-center gap-3 text-[14px] font-medium text-white/70 tabular">
+                <span className="inline-flex items-center gap-[3px]" aria-label={`${recents.length} recent`}>
+                  <History size={15} aria-hidden />
+                  {recents.length}
+                </span>
+                <span className="inline-flex items-center gap-[3px]" aria-label={`${favorites.length} saved`}>
+                  <Heart size={14} className="fill-accent text-accent" aria-hidden />
+                  {favorites.length}
+                </span>
+              </p>
+            )}
           </div>
           {near && (
             <button
