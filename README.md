@@ -2,6 +2,8 @@
 
 AcuPark is a mobile-first campus parking app for the University of Washington, built with Next.js 14. Find a lot, reserve a stall, get there, and pay ahead, on arrival, or on the spot.
 
+**▶ Live demo: [acupark-ten.vercel.app](https://acupark-ten.vercel.app)**. Open it on your phone and use *Add to Home Screen* to get the full-screen app. It's HTTPS, so AI Quick Scan can use the camera. Every merge to `main` redeploys it automatically.
+
 ## 🌟 Features
 
 ### Launch screen
