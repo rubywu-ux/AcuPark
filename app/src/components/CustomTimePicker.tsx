@@ -157,12 +157,12 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 w-full">
+    <div className="w-full">
       {/* Header & Toggle */}
       <div className="flex items-center justify-center mb-8 gap-4">
         {/* Digital Display Group */}
         <div className="flex flex-col items-end">
-          <div className="text-4xl font-black text-gray-900 tracking-tight leading-none">
+          <div className="text-4xl font-black text-ink tracking-tight leading-none">
             {(() => {
                if (!value) return "--:--";
                const hour12 = h % 12 || 12;
@@ -171,7 +171,7 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
           </div>
           {/* End Time Display */}
           {duration && (
-            <div className="text-xs font-bold text-primary/80 mt-1">
+            <div className="text-xs font-bold text-brand-text/80 mt-1">
               Ends {(() => {
                 const endHour = (h + duration) % 24;
                 const endMeridiem = endHour >= 12 ? 'PM' : 'AM';
@@ -183,12 +183,12 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
         </div>
 
         {/* AM/PM Toggle */}
-        <div className="flex bg-gray-100 p-1 rounded-lg relative h-7 items-center">
+        <div className="flex bg-surface p-1 rounded-lg relative h-7 items-center">
           <button
             onClick={() => toggleMeridiem('AM')}
             className={clsx(
               "px-2 rounded-md text-xs font-bold transition-all duration-300 z-10 h-full flex items-center justify-center min-w-[28px]",
-              currentMeridiem === 'AM' ? "text-white" : "text-gray-500 hover:text-gray-700"
+              currentMeridiem === 'AM' ? "text-white" : "text-muted hover:text-ink"
             )}
           >
             AM
@@ -197,7 +197,7 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
             onClick={() => toggleMeridiem('PM')}
             className={clsx(
               "px-2 rounded-md text-xs font-bold transition-all duration-300 z-10 h-full flex items-center justify-center min-w-[28px]",
-              currentMeridiem === 'PM' ? "text-white" : "text-gray-500 hover:text-gray-700"
+              currentMeridiem === 'PM' ? "text-white" : "text-muted hover:text-ink"
             )}
           >
             PM
@@ -206,7 +206,7 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
           {/* Sliding Background */}
           <div 
             className={clsx(
-              "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-primary rounded-md transition-all duration-300 shadow-sm",
+              "absolute top-1 bottom-1 w-[calc(50%-4px)] bg-brand rounded-md transition-all duration-300 shadow-sm",
             )}
             style={{
                 left: currentMeridiem === 'AM' ? '4px' : 'calc(50%)'
@@ -223,7 +223,7 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
         {/* Duration Highlight Overlay */}
         {duration && (
           <div 
-            className="absolute left-1/2 top-[35%] -translate-y-1/2 bg-primary/10 z-0 pointer-events-none rounded-r-md border-l border-primary/20 transition-all duration-300"
+            className="absolute left-1/2 top-[35%] -translate-y-1/2 bg-brand/10 z-0 pointer-events-none rounded-r-md border-l border-brand/20 transition-all duration-300"
             style={{ 
               width: `${duration * 2 * slotWidth}px`, // Dynamic width based on slotWidth
               height: '40px', // Covers ticks only
@@ -232,8 +232,8 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
         )}
 
         {/* Fade masks */}
-        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-card to-transparent z-10 pointer-events-none"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-card to-transparent z-10 pointer-events-none"></div>
 
         <div 
           ref={scrollContainerRef}
@@ -289,13 +289,13 @@ export default function CustomTimePicker({ value, onChange, duration = 2 }: Cust
                 {/* Tick Mark */}
                 <div className={clsx(
                   "w-0.5 rounded-full transition-all duration-300",
-                  isSelected ? "h-8 bg-primary shadow-md" : (isCondensed && !isFullHour ? "h-2 bg-gray-200" : "h-4 bg-gray-300 group-hover:bg-gray-400")
+                  isSelected ? "h-8 bg-brand shadow-md" : (isCondensed && !isFullHour ? "h-2 bg-line" : "h-4 bg-subtle/60 group-hover:bg-subtle")
                 )} />
                 
                 {/* Time Label */}
                 <span className={clsx(
                   "text-xs font-medium transition-all duration-300",
-                  isSelected ? "text-primary scale-110" : "text-gray-400 group-hover:text-gray-500",
+                  isSelected ? "text-brand-text scale-110" : "text-subtle group-hover:text-muted",
                   isLabelVisible ? "opacity-100" : "opacity-0"
                 )}>
                   {slot.displayHour}:{slot.minute.toString().padStart(2, '0')}

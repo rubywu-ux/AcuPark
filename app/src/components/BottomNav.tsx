@@ -2,38 +2,57 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Map, User, CircleParking } from "lucide-react";
+import { MapPin, Settings } from "lucide-react";
 import { clsx } from "clsx";
+
+const ParkGlyph = ({ size = 24 }: { size?: number }) => (
+  <span className="font-semibold leading-none" style={{ fontSize: size }}>
+    P
+  </span>
+);
+
+const NAV_ITEMS = [
+  { name: "Home", href: "/", icon: ParkGlyph },
+  { name: "Map", href: "/map", icon: MapPin },
+  { name: "Settings", href: "/settings", icon: Settings },
+];
+
+export const TAB_ROUTES = NAV_ITEMS.map((i) => i.href);
 
 export default function BottomNav() {
   const pathname = usePathname();
 
-  const navItems = [
-    { name: "Home", href: "/", icon: CircleParking },
-    { name: "Map", href: "/map", icon: Map },
-    { name: "Profile", href: "/profile", icon: User },
-  ];
-
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-surface border-t border-gray-200 pb-safe pt-2 px-6 flex justify-between items-center z-50 h-20">
-      {navItems.map((item) => {
-        const isActive = pathname === item.href;
-        return (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={clsx(
-              "flex flex-col items-center justify-center w-20 h-14 rounded-2xl transition-all duration-200",
-              isActive 
-                ? "text-primary bg-primary/10 font-semibold" 
-                : "text-gray-400 hover:text-primary hover:bg-gray-50"
-            )}
-          >
-            <item.icon size={26} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="text-[10px] font-medium mt-1">{item.name}</span>
-          </Link>
-        );
-      })}
-    </div>
+    <nav
+      aria-label="Primary"
+      className="fixed bottom-0 inset-x-0 mx-auto max-w-app z-50 bg-nav text-white pb-safe shadow-[0_-4px_12px_rgba(13,10,44,0.08)]"
+    >
+      <div className="flex h-[72px]">
+        {NAV_ITEMS.map((item) => {
+          const active = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={clsx(
+                "relative flex-1 flex flex-col items-center justify-center gap-1 transition-colors",
+                active ? "text-white" : "text-white/55 hover:text-white/80"
+              )}
+            >
+              <Icon size={24} />
+              <span className={clsx("text-[13px]", active ? "font-semibold" : "font-normal")}>{item.name}</span>
+              <span
+                className={clsx(
+                  "absolute bottom-2 h-[3px] rounded-full bg-white transition-all duration-300",
+                  active ? "w-14 opacity-100" : "w-0 opacity-0"
+                )}
+              />
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

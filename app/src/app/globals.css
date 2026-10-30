@@ -2,6 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design tokens — RGB triplets so Tailwind can apply opacity (bg-brand/10). */
+:root {
+  --brand: 80 46 131;        /* #502E83 Figma primary */
+  --brand-text: 80 46 131;
+  --brand-deep: 50 0 110;    /* #32006E timer */
+  --brand-soft: 239 231 249;
+  --band: 80 46 131;         /* purple header band */
+  --nav: 80 46 131;
+  --accent: 255 199 0;       /* #FFC700 CTA */
+  --on-accent: 33 31 39;
+  --bg: 255 255 255;
+  --surface: 246 244 250;
+  --card: 255 255 255;
+  --ink: 33 31 39;           /* #211F27 */
+  --muted: 110 106 120;
+  --subtle: 160 157 168;
+  --line: 228 224 234;
+  --success: 34 150 52;      /* #229634 paid screen */
+  --warning: 224 120 0;
+  --danger: 214 40 40;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --brand: 112 74 172;
+  --brand-text: 196 168 240;
+  --brand-deep: 58 22 112;
+  --brand-soft: 45 35 64;
+  --band: 40 26 66;
+  --nav: 30 22 46;
+  --accent: 255 199 0;
+  --on-accent: 33 31 39;
+  --bg: 15 12 21;
+  --surface: 21 17 29;
+  --card: 29 24 39;
+  --ink: 243 240 248;
+  --muted: 168 162 182;
+  --subtle: 118 112 132;
+  --line: 50 43 62;
+  --success: 40 160 64;
+  --warning: 245 150 30;
+  --danger: 239 80 80;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: rgb(var(--surface));
+  color: rgb(var(--ink));
+  -webkit-tap-highlight-color: transparent;
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -9,5 +61,127 @@
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ---------- Map ---------- */
+.leaflet-container {
+  background: rgb(var(--surface));
+  font-family: inherit;
+}
+.leaflet-tile-pane {
+  filter: saturate(0.55) brightness(1.04) contrast(0.95);
+}
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(195deg) saturate(0.45) brightness(0.85) contrast(0.9);
+}
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  background: rgb(var(--card) / 0.7) !important;
+  color: rgb(var(--muted)) !important;
+}
+.leaflet-control-attribution a {
+  color: rgb(var(--muted)) !important;
+}
+.leaflet-div-icon {
+  background: transparent;
+  border: none;
+}
+
+.lot-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 34px;
+  min-width: 34px;
+  width: max-content;
+  padding: 0 10px 0 6px;
+  border-radius: 999px;
+  border: 2.5px solid #fff;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 6px 16px rgba(13, 10, 44, 0.28);
+  transform: translate(-50%, -50%);
+  transition: transform 0.2s ease;
+  white-space: nowrap;
+}
+.lot-pin .p {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.lot-pin.is-selected {
+  transform: translate(-50%, -50%) scale(1.18);
+  box-shadow: 0 0 0 6px rgb(var(--brand) / 0.25), 0 8px 20px rgba(13, 10, 44, 0.35);
+}
+.lot-pin.available { background: rgb(var(--success)); }
+.lot-pin.busy { background: rgb(var(--warning)); }
+.lot-pin.full { background: rgb(var(--danger)); }
+
+.user-dot {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+}
+.user-dot::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.35);
+  animation: ring-pulse 1.8s ease-out infinite;
+}
+.user-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.car-marker {
+  width: 40px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+}
+.car-marker > div {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgb(var(--brand));
+  border: 3px solid #fff;
+  box-shadow: 0 6px 16px rgba(13, 10, 44, 0.35);
+  display: grid;
+  place-items: center;
+  transition: transform 0.4s linear;
+}
+
+@keyframes ring-pulse {
+  0% { transform: scale(0.6); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
