@@ -4,7 +4,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { CalendarClock, Clock, Heart, LocateFixed, MapPin, Navigation, SlidersHorizontal, X } from "lucide-react";
+import { CalendarClock, Clock, Heart, LocateFixed, Navigation, SlidersHorizontal, X } from "lucide-react";
+import { NAV_SPACE } from "@/components/BottomNav";
 import LotSearch from "@/components/LotSearch";
 import LotsDrawer from "@/components/LotsDrawer";
 import { Button, Chip, IconButton, StatusPill } from "@/components/ui";
@@ -115,7 +116,7 @@ function MapScreen() {
   };
 
   return (
-    <main className="relative h-[calc(100dvh-72px-env(safe-area-inset-bottom))] overflow-hidden">
+    <main className="fixed inset-x-0 top-0 mx-auto max-w-app overflow-hidden" style={{ bottom: NAV_SPACE }}>
       <div className="absolute inset-0 z-0">
         <MapView
           lots={lots}
@@ -130,14 +131,9 @@ function MapScreen() {
 
       {/* Header band */}
       <div className="absolute top-0 inset-x-0 z-[1000]">
-        <header className="bg-band text-white px-5 pt-[max(env(safe-area-inset-top),14px)] pb-4 rounded-b-[24px] shadow-lift">
-          <div className="flex justify-end mb-2">
-            <span className="inline-flex items-center gap-1 h-7 text-[13px] font-medium text-white/60">
-              <MapPin size={13} /> {CITY_LABEL}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <LotSearch placeholder="Where to park?" onPick={select} onPickPlace={pickPlace} className="flex-1" />
+        <header className="bg-band text-white px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3 shadow-lift">
+          <div className="flex items-center gap-2.5">
+            <LotSearch placeholder="Where to park?" hint={CITY_LABEL} onPick={select} onPickPlace={pickPlace} className="flex-1" />
             <IconButton
               label="Filters"
               onClick={() => setShowFilters((v) => !v)}

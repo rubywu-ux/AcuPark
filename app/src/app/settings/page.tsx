@@ -41,7 +41,7 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-[100dvh] bg-surface">
-      <TopBar title={<span className="text-[28px] font-medium">Settings</span>} className="pb-6 rounded-b-[28px]" />
+      <TopBar title={<span className="text-[28px] font-medium">Settings</span>} className="pb-6" />
 
       <div className="px-5 pt-5 space-y-6 pb-8">
         {/* Profile — campus status is verified, so it's shown read-only here */}

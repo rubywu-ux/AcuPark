@@ -20,7 +20,7 @@ import {
 
 type Tab = "recents" | "saved";
 
-const PEEK = 150; // handle + title + tabs
+const PEEK = 64; // resting: handle + one title row, so the map shows as much as possible
 const TOP_GAP = 132; // keep the purple search header visible when fully open
 const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag
 const FLICK_VELOCITY = 0.5; // px/ms — a fast flick jumps to the next snap point
@@ -243,7 +243,7 @@ export default function LotsDrawer({
       ref={sheetRef}
       aria-label="Recent and saved lots"
       className={clsx(
-        "absolute bottom-0 inset-x-0 z-[1000] flex flex-col bg-band text-white rounded-t-[28px] shadow-sheet",
+        "absolute bottom-0 inset-x-0 z-[1000] flex flex-col overflow-hidden bg-band text-white rounded-t-[24px] shadow-sheet",
         !dragging && "transition-[height] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)]"
       )}
       style={{ height }}
@@ -257,23 +257,23 @@ export default function LotsDrawer({
       {/* Drag area: handle, title and tabs */}
       <div
         onPointerDown={onPointerDown}
-        className="shrink-0 px-5 pt-2.5 pb-3 cursor-grab active:cursor-grabbing select-none touch-none"
+        className="shrink-0 px-5 pt-2 pb-3 cursor-grab active:cursor-grabbing select-none touch-none"
       >
-        <div className="mx-auto h-1.5 w-11 rounded-full bg-white/35" />
-        <div className="flex items-center justify-between mt-3">
-          <div className="min-w-0">
-            <h2 className="text-[19px] font-semibold leading-tight truncate">
+        <div className="mx-auto h-1 w-10 rounded-full bg-white/35" />
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <div className="min-w-0 flex items-baseline gap-2">
+            <h2 className="text-[17px] font-semibold leading-tight truncate shrink-0 max-w-[65%]">
               {near ? `Near ${near.name}` : "Your lots"}
             </h2>
-            <p className="text-[13px] text-white/60">
-              {near ? "Parking by closest walk" : `${recents.length} recent · ${favorites.length} saved`}
+            <p className="text-[13px] text-white/60 truncate">
+              {near ? "Closest walk" : `${recents.length} recent · ${favorites.length} saved`}
             </p>
           </div>
           {near && (
             <button
               aria-label={`Clear ${near.name}`}
               onClick={onClearNear}
-              className="ml-auto mr-2 w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
+              className="ml-auto w-8 h-8 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
             >
               <X size={18} />
             </button>
@@ -282,9 +282,9 @@ export default function LotsDrawer({
             aria-label={expanded ? "Collapse" : "Expand"}
             aria-expanded={expanded}
             onClick={() => snapTo(expanded ? PEEK : snaps[1])}
-            className="w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
+            className="w-8 h-8 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
           >
-            <ChevronUp size={20} className={clsx("transition-transform", expanded && "rotate-180")} />
+            <ChevronUp size={18} className={clsx("transition-transform", expanded && "rotate-180")} />
           </button>
         </div>
 

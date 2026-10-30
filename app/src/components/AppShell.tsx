@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import BottomNav, { TAB_ROUTES } from "@/components/BottomNav";
+import BottomNav, { NAV_SPACE, TAB_ROUTES } from "@/components/BottomNav";
 import Splash, { SPLASH_MS } from "@/components/Splash";
 import { useToast } from "@/components/ui";
 import { useStore } from "@/lib/store";
@@ -56,7 +56,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative mx-auto min-h-[100dvh] max-w-app bg-bg sm:shadow-lift">
-      <div className={showNav ? "pb-[calc(72px+env(safe-area-inset-bottom))]" : undefined}>{children}</div>
+      <div style={showNav ? { paddingBottom: NAV_SPACE } : undefined}>{children}</div>
       {showNav && <BottomNav />}
       {splash && !pathname.startsWith("/preview") && <Splash />}
     </div>
