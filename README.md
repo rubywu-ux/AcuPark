@@ -125,7 +125,7 @@ iOS and Android block camera access on insecure (HTTP) connections. To test the 
 
 ## 📱 Usage
 
-1.  **Map**: tap a pin (or search a code like `N06`) → **Reserve**.
+1.  **Map**: tap a pin (or search a code like `N22`) → **Reserve**.
 2.  Pick a stall, date, time and duration → **Start Reservation**.
 3.  **Take Me There** → **Start** (use **Skip ahead** to speed up the demo drive).
 4.  On arrival, **Scan & check in** → **Looks Good!** → **Confirm Payment**.

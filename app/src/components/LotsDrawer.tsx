@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { clsx } from "clsx";
-import { ChevronUp, Clock, Heart } from "lucide-react";
+import { ChevronUp, Clock, Footprints, Heart, X } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
+  CampusPlace,
+  LOTS,
   ParkingLot,
   USER_LOCATION,
   availabilityAt,
@@ -13,6 +15,7 @@ import {
   formatMoney,
   getLot,
   statusFor,
+  walkMinutes,
 } from "@/services/mockData";
 
 type Tab = "recents" | "saved";
@@ -25,13 +28,18 @@ const FLICK_VELOCITY = 0.5; // px/ms — a fast flick jumps to the next snap poi
 /**
  * Bottom sheet of recent and saved lots. Drag the header up or down like a native
  * sheet; it snaps to peek, half and full heights (a quick flick moves one step).
+ * Given a campus place, it lists the lots nearest to it by walking time instead.
  */
 export default function LotsDrawer({
   onPick,
   onHeightChange,
+  near,
+  onClearNear,
 }: {
   onPick: (lot: ParkingLot) => void;
   onHeightChange?: (h: number) => void;
+  near?: CampusPlace | null;
+  onClearNear?: () => void;
 }) {
   const { favorites, recents, toggleFavorite } = useStore();
   const sheetRef = useRef<HTMLElement>(null);
@@ -59,6 +67,11 @@ export default function LotsDrawer({
   useEffect(() => {
     onHeightChange?.(height);
   }, [height, onHeightChange]);
+
+  // A searched building pops the sheet open so the nearby lots are visible right away.
+  useEffect(() => {
+    if (near) setHeight(Math.round(containerH * 0.52));
+  }, [near, containerH]);
 
   const snapTo = useCallback((h: number) => setHeight(h), []);
 
@@ -112,7 +125,12 @@ export default function LotsDrawer({
   };
 
   const ids = tab === "recents" ? recents : favorites;
-  const lots = ids.map((id) => getLot(id)).filter((l): l is ParkingLot => !!l);
+  const nearby = near
+    ? LOTS.map((lot) => ({ lot, walk: walkMinutes(distanceKm(near.location, lot.location)) })).sort((a, b) => a.walk - b.walk)
+    : null;
+  const lots = nearby ? nearby.map((n) => n.lot) : ids.map((id) => getLot(id)).filter((l): l is ParkingLot => !!l);
+  // Closest lot that still has room gets the "Best match" tag.
+  const bestId = nearby?.find((n) => availabilityAt(n.lot, new Date()).open > 0)?.lot.id;
   const expanded = height > PEEK + 10;
 
   return (
@@ -135,23 +153,36 @@ export default function LotsDrawer({
       >
         <div className="mx-auto h-1.5 w-11 rounded-full bg-white/35" />
         <div className="flex items-center justify-between mt-3">
-          <div>
-            <h2 className="text-[19px] font-semibold leading-tight">Your lots</h2>
+          <div className="min-w-0">
+            <h2 className="text-[19px] font-semibold leading-tight truncate">
+              {near ? `Near ${near.name}` : "Your lots"}
+            </h2>
             <p className="text-[13px] text-white/60">
-              {recents.length} recent · {favorites.length} saved
+              {near ? "Parking by closest walk" : `${recents.length} recent · ${favorites.length} saved`}
             </p>
           </div>
+          {near && (
+            <button
+              data-no-drag
+              aria-label={`Clear ${near.name}`}
+              onClick={onClearNear}
+              className="ml-auto mr-2 w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
+            >
+              <X size={18} />
+            </button>
+          )}
           <button
             data-no-drag
             aria-label={expanded ? "Collapse" : "Expand"}
             aria-expanded={expanded}
             onClick={() => snapTo(expanded ? PEEK : snaps[1])}
-            className="w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/15"
+            className="w-9 h-9 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 shrink-0"
           >
             <ChevronUp size={20} className={clsx("transition-transform", expanded && "rotate-180")} />
           </button>
         </div>
 
+        {!near && (
         <div data-no-drag className="mt-3 grid grid-cols-2 p-1 rounded-xl bg-black/20" role="tablist">
           {(
             [
@@ -184,6 +215,7 @@ export default function LotsDrawer({
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* List */}
@@ -210,6 +242,8 @@ export default function LotsDrawer({
               <LotRow
                 key={lot.id}
                 lot={lot}
+                walk={nearby?.find((n) => n.lot.id === lot.id)?.walk}
+                best={lot.id === bestId}
                 saved={favorites.includes(lot.id)}
                 onPick={() => onPick(lot)}
                 onToggleSave={() => toggleFavorite(lot.id)}
@@ -230,11 +264,16 @@ const STATUS_TONE = {
 
 function LotRow({
   lot,
+  walk,
+  best,
   saved,
   onPick,
   onToggleSave,
 }: {
   lot: ParkingLot;
+  /** Walking minutes to the searched place, when there is one. */
+  walk?: number;
+  best?: boolean;
   saved: boolean;
   onPick: () => void;
   onToggleSave: () => void;
@@ -247,14 +286,26 @@ function LotRow({
     <li className="relative">
       <button
         onClick={onPick}
-        className="w-full flex items-center gap-3 rounded-2xl bg-white/[0.07] hover:bg-white/[0.12] p-2.5 pr-12 text-left transition"
+        className={clsx(
+          "w-full flex items-center gap-3 rounded-2xl p-2.5 pr-12 text-left transition",
+          best ? "bg-white/[0.14] ring-2 ring-accent/70" : "bg-white/[0.07] hover:bg-white/[0.12]"
+        )}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={lot.photo} alt="" className="w-[84px] h-[62px] rounded-xl object-cover shrink-0" />
         <span className="flex-1 min-w-0">
-          <span className="block text-[16px] font-semibold truncate">{lot.name}</span>
+          <span className="flex items-center gap-2">
+            <span className="text-[16px] font-semibold truncate">{lot.name}</span>
+            {best && (
+              <span className="shrink-0 rounded-full bg-accent text-accent-ink px-2 h-5 leading-5 text-[11px] font-bold">
+                Best match
+              </span>
+            )}
+          </span>
           <span className="flex items-center gap-1 text-[13px] text-white/60 truncate">
-            <Clock size={12} /> {mins} min · {lot.ratePerHour ? `${formatMoney(lot.ratePerHour)}/hr` : "Free"}
+            {walk !== undefined ? <Footprints size={12} /> : <Clock size={12} />}
+            {walk !== undefined ? `${walk} min walk` : `${mins} min drive`} ·{" "}
+            {lot.ratePerHour ? `${formatMoney(lot.ratePerHour)}/hr` : "Free"}
           </span>
           <span className={clsx("flex items-center gap-1.5 text-[13px] font-semibold mt-0.5", STATUS_TONE[status])}>
             <span className="w-1.5 h-1.5 rounded-full bg-current" />

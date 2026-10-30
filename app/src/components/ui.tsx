@@ -135,7 +135,7 @@ export function StatusPill({ status, open, total }: { status: LotStatus; open: n
   const tone =
     status === "Full" ? "bg-danger/10 text-danger" : status === "Busy" ? "bg-warning/15 text-warning" : "bg-success/10 text-success";
   return (
-    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-[13px] font-semibold", tone)}>
+    <span className={clsx("inline-flex items-center gap-1.5 rounded-full px-2.5 h-7 text-[13px] font-semibold whitespace-nowrap shrink-0", tone)}>
       <span className="w-2 h-2 rounded-full bg-current" />
       {status === "Full" ? "Full" : `${open} of ${total} open`}
     </span>

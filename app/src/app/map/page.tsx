@@ -10,6 +10,7 @@ import LotsDrawer from "@/components/LotsDrawer";
 import { Button, Chip, IconButton, StatusPill } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import {
+  CampusPlace,
   CITY_LABEL,
   FILTERS,
   LOTS,
@@ -17,13 +18,16 @@ import {
   ParkingLot,
   USER_LOCATION,
   availabilityAt,
+  displayTitle,
   distanceKm,
   driveMinutes,
   formatMoney,
   getLot,
+  getPlace,
   rateFor,
   signCode,
   statusFor,
+  walkMinutes,
 } from "@/services/mockData";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
@@ -34,6 +38,16 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 const NEAR_KM = 1.1;
 /** Centre slightly south of the lot so its pin sits above the bottom sheet. */
 const aboveSheet = (lot: ParkingLot): [number, number] => [lot.location[0] - 0.0024, lot.location[1]];
+/** The place plus its three closest lots, so the map shows where you'd walk from. */
+const nearbyFrame = (place: CampusPlace) => [
+  place.location,
+  ...[...LOTS]
+    .sort((a, b) => distanceKm(place.location, a.location) - distanceKm(place.location, b.location))
+    .slice(0, 3)
+    .map((l) => l.location),
+];
+/** Same idea for a searched place with the half-open lots list below it. */
+const aboveCenter = (place: CampusPlace): [number, number] => [place.location[0] - 0.0028, place.location[1]];
 
 function matches(lot: ParkingLot, f: LotFeature) {
   if (f === "Near Me") return distanceKm(USER_LOCATION, lot.location) <= NEAR_KM;
@@ -48,6 +62,7 @@ function MapScreen() {
   const [filters, setFilters] = useState<LotFeature[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [drawerH, setDrawerH] = useState(150);
+  const [place, setPlace] = useState<CampusPlace | null>(getPlace(params.get("place")) ?? null);
   const [focus, setFocus] = useState<[number, number] | undefined>(getLot(params.get("lot")) ? aboveSheet(getLot(params.get("lot"))!) : undefined);
 
   useEffect(() => {
@@ -55,6 +70,11 @@ function MapScreen() {
     if (id && getLot(id)) {
       setSelectedId(id);
       setFocus(aboveSheet(getLot(id)!));
+    }
+    const p = getPlace(params.get("place"));
+    if (p) {
+      setPlace(p);
+      if (!id) setFocus(aboveCenter(p));
     }
   }, [params]);
 
@@ -64,18 +84,48 @@ function MapScreen() {
   const select = (lot: ParkingLot) => {
     setSelectedId(lot.id);
     setFocus(aboveSheet(lot));
-    router.replace(`/map?lot=${lot.id}`, { scroll: false });
+    router.replace(urlFor(lot.id, place), { scroll: false });
+  };
+
+  // Keep ?place= in the URL so closing a lot returns to the nearby list.
+  const urlFor = (lotId: string | null, p: CampusPlace | null) => {
+    const q = new URLSearchParams();
+    if (p) q.set("place", p.id);
+    if (lotId) q.set("lot", lotId);
+    const qs = q.toString();
+    return qs ? `/map?${qs}` : "/map";
+  };
+
+  const pickPlace = (p: CampusPlace) => {
+    setPlace(p);
+    setSelectedId(null);
+    setFocus(aboveCenter(p));
+    router.replace(urlFor(null, p), { scroll: false });
+  };
+
+  const clearPlace = () => {
+    setPlace(null);
+    router.replace(urlFor(selectedId, null), { scroll: false });
   };
 
   const clear = () => {
     setSelectedId(null);
-    router.replace("/map", { scroll: false });
+    if (place) setFocus(aboveCenter(place));
+    router.replace(urlFor(null, place), { scroll: false });
   };
 
   return (
     <main className="relative h-[calc(100dvh-72px-env(safe-area-inset-bottom))] overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <MapView lots={lots} selectedId={selectedId} onSelect={select} focus={focus} />
+        <MapView
+          lots={lots}
+          selectedId={selectedId}
+          onSelect={select}
+          focus={focus}
+          destination={place ? { at: place.location, label: place.name } : undefined}
+          fitPoints={!selected && place ? nearbyFrame(place) : undefined}
+          padBottom={!selected && place ? 400 : undefined}
+        />
       </div>
 
       {/* Header band */}
@@ -87,7 +137,7 @@ function MapScreen() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <LotSearch placeholder="Where to park?" onPick={select} className="flex-1" />
+            <LotSearch placeholder="Where to park?" onPick={select} onPickPlace={pickPlace} className="flex-1" />
             <IconButton
               label="Filters"
               onClick={() => setShowFilters((v) => !v)}
@@ -144,12 +194,16 @@ function MapScreen() {
         <LocateFixed size={20} />
       </IconButton>
 
-      {selected ? <LotSheet lot={selected} onClose={clear} /> : <LotsDrawer onPick={select} onHeightChange={setDrawerH} />}
+      {selected ? (
+        <LotSheet lot={selected} place={place} onClose={clear} />
+      ) : (
+        <LotsDrawer onPick={select} onHeightChange={setDrawerH} near={place} onClearNear={clearPlace} />
+      )}
     </main>
   );
 }
 
-function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
+function LotSheet({ lot, place, onClose }: { lot: ParkingLot; place: CampusPlace | null; onClose: () => void }) {
   const { user, favorites, toggleFavorite } = useStore();
   const { open, total } = availabilityAt(lot, new Date());
   const status = statusFor(open, total);
@@ -165,10 +219,10 @@ function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
       <div className="mx-auto h-1 w-10 rounded-full bg-white/40 mb-3" />
       <div className="relative h-[150px] rounded-[20px] overflow-hidden border border-white/30">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={lot.photo} alt={`${lot.name} aerial view`} className="w-full h-full object-cover" />
+        <img src={lot.photo} alt={`${lot.name} photo`} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
         <p className="absolute left-4 bottom-3 text-[24px] font-light tracking-wide">
-          {lot.kind.toUpperCase()} {signCode(lot)}
+          {displayTitle(lot)}
         </p>
         <div className="absolute right-2 top-2 flex gap-1">
           <IconButton
@@ -191,7 +245,7 @@ function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
             <Clock size={12} /> {lot.hours}
           </p>
         </div>
-        <span className="rounded-full bg-white p-0.5">
+        <span className="rounded-full bg-white p-0.5 shrink-0">
           <StatusPill status={status} open={open} total={total} />
         </span>
       </div>
@@ -200,7 +254,9 @@ function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
         {[
           { k: "Rate", v: lot.ratePerHour ? `${formatMoney(rateFor(lot, user.role))}/hr` : "Free" },
           { k: "Drive", v: `${driveMinutes(km)} min` },
-          { k: "Distance", v: `${km.toFixed(1)} km` },
+          place
+            ? { k: "Walk", v: `${walkMinutes(distanceKm(place.location, lot.location))} min` }
+            : { k: "Distance", v: `${km.toFixed(1)} km` },
         ].map((x) => (
           <div key={x.k} className="rounded-2xl bg-white/10 py-2.5">
             <p className="text-[12px] text-white/60">{x.k}</p>

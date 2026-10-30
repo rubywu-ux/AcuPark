@@ -55,7 +55,11 @@ export default function Home() {
         <p className="text-white/70 text-[15px] mt-1 mb-5">
           {session ? "You're parked. We'll keep an eye on the clock." : "Ready to park?"}
         </p>
-        <LotSearch placeholder="Search lot #" onPick={(lot) => router.push(`/map?lot=${lot.id}`)} />
+        <LotSearch
+          placeholder="Search building or lot #"
+          onPick={(lot) => router.push(`/map?lot=${lot.id}`)}
+          onPickPlace={(place) => router.push(`/map?place=${place.id}`)}
+        />
       </header>
 
       <div className="px-6 pt-6 space-y-6 pb-8">

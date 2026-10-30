@@ -28,8 +28,8 @@ export interface User {
 
 export interface ParkingLot {
   id: string;
-  code: string; // "N06" — what drivers type and see on signs
-  name: string; // "Lot N06"
+  code: string; // "N22" — what drivers type and see on signs
+  name: string; // "Lot N22"
   kind: "Lot" | "Garage";
   area: string;
   address: string;
@@ -86,50 +86,85 @@ export const DEFAULT_USER: User = {
   },
 };
 
+// N01, N02, N05, N22, E1, E12, E19 and Padelford Garage are real UW lots, positioned from OpenStreetMap; the rest are fictional.
 export const LOTS: ParkingLot[] = [
   {
-    id: "lot_n06",
-    code: "N06",
-    name: "Lot N06",
+    id: "lot_n01",
+    code: "N01",
+    name: "Lot N01",
     kind: "Lot",
     area: "North Campus",
-    address: "4060 Stevens Way NE",
-    location: [47.6566, -122.3058],
+    address: "NE Stevens Ln · next to the Burke Museum",
+    location: [47.66052, -122.3107],
+    aisles: 2,
+    baseOccupancy: 0.7,
+    ratePerHour: 4,
+    hours: "6 AM – 10 PM",
+    features: ["Walkability", "Low Cost"],
+    // Photo: Lucas Hobbs on Unsplash (Unsplash License) — unsplash.com/photos/gEHSvDMHnEA
+    photo: "/lots/lot-n01.jpg",
+  },
+  {
+    id: "lot_n02",
+    code: "N02",
+    name: "Lot N02",
+    kind: "Lot",
+    area: "North Campus",
+    address: "NE Clallam Pl · between Denny and Paccar Hall",
+    location: [47.6589, -122.30924],
+    aisles: 1,
+    baseOccupancy: 0.85,
+    ratePerHour: 5,
+    hours: "6 AM – 10 PM",
+    features: ["EV Charging", "Walkability"],
+    // Photo: Raban Haaijk on Unsplash (Unsplash License) — unsplash.com/photos/wftNpcjCHT4
+    photo: "/lots/lot-n02.jpg",
+  },
+  {
+    id: "lot_n22",
+    code: "N22",
+    name: "Lot N22",
+    kind: "Lot",
+    area: "North Campus",
+    address: "King Ln NE · north of the HUB",
+    location: [47.65629, -122.30506],
     aisles: 3,
     baseOccupancy: 0.82,
     ratePerHour: 5,
     hours: "6 AM – 11 PM",
-    features: ["Near Me", "Walkability"],
-    photo: "/lots/lot-topview.jpg",
+    features: ["Near Me", "Walkability", "EV Charging"],
+    // Placeholder until there's a free photo of the real lot.
+    // Photo: John Mosquera on Unsplash (Unsplash License) — unsplash.com/photos/yJPzFyWGrO0
+    photo: "/lots/lot-n22.jpg",
   },
   {
-    id: "lot_n09",
-    code: "N09",
-    name: "Garage N09",
-    kind: "Garage",
+    id: "lot_n05",
+    code: "N05",
+    name: "Lot N05",
+    kind: "Lot",
     area: "North Campus",
-    address: "4300 Memorial Way NE",
-    location: [47.6598, -122.3086],
+    address: "Clallam Ln NE",
+    location: [47.66039, -122.30883],
     aisles: 5,
     baseOccupancy: 0.6,
     ratePerHour: 6,
     hours: "Open 24 hours",
     features: ["Late Hours", "EV Charging"],
-    photo: "/lots/lot-a.jpg",
+    photo: "/lots/lot-topview.jpg",
   },
   {
-    id: "lot_n03",
-    code: "N03",
-    name: "Lot N03",
+    id: "lot_e1",
+    code: "E1",
+    name: "Lot E1",
     kind: "Lot",
-    area: "North Campus",
-    address: "4200 15th Ave NE",
-    location: [47.6589, -122.3021],
-    aisles: 2,
+    area: "East Campus",
+    address: "Walla Walla Rd NE",
+    location: [47.65884, -122.29972],
+    aisles: 6,
     baseOccupancy: 0.55,
     ratePerHour: 3.5,
     hours: "6 AM – 10 PM",
-    features: ["Low Cost", "Walkability"],
+    features: ["Low Cost", "Late Hours"],
     photo: "/lots/lot-cyclorama.jpg",
   },
   {
@@ -145,7 +180,8 @@ export const LOTS: ParkingLot[] = [
     ratePerHour: 7,
     hours: "Open 24 hours",
     features: ["Near Me", "Late Hours", "EV Charging"],
-    photo: "/lots/lot-lined.jpg",
+    // Photo: Aalo Lens on Unsplash (Unsplash License) — unsplash.com/photos/HfSJz23_BOM
+    photo: "/lots/central-garage.jpg",
   },
   {
     id: "lot_w12",
@@ -163,21 +199,97 @@ export const LOTS: ParkingLot[] = [
     photo: "/lots/lot-car.jpg",
   },
   {
-    id: "lot_e03",
-    code: "E03",
-    name: "Lot E03",
-    kind: "Lot",
-    area: "East Campus",
-    address: "3900 Montlake Blvd NE",
-    location: [47.6552, -122.2986],
+    id: "lot_n20",
+    code: "N20",
+    name: "Padelford Garage",
+    kind: "Garage",
+    area: "Central Campus",
+    address: "4112 Mason Rd NE",
+    location: [47.65714, -122.30326],
     aisles: 4,
     baseOccupancy: 0.35,
     ratePerHour: 0,
     hours: "Free after 5 PM · 24 hours",
     features: ["Free Parking", "Late Hours"],
-    photo: "/lots/lot-topview.jpg",
+    // Photo: Holiday Extras on Unsplash (Unsplash License) — unsplash.com/photos/uElZ2-OT83c
+    photo: "/lots/padelford-garage.jpg",
+  },
+  {
+    id: "lot_e12",
+    code: "E12",
+    name: "Lot E12",
+    kind: "Lot",
+    area: "East Campus",
+    address: "Walla Walla Rd NE · by the Sports Medicine Center",
+    location: [47.64858, -122.30224],
+    aisles: 6,
+    baseOccupancy: 0.5,
+    ratePerHour: 4,
+    hours: "6 AM – 11 PM",
+    features: ["Low Cost"],
+    // Photo: m (@brydoncreative) on Unsplash (Unsplash License) — unsplash.com/photos/vMneecAwo34
+    photo: "/lots/lot-e12.jpg",
+  },
+  {
+    id: "lot_e19",
+    code: "E19",
+    name: "Lot E19",
+    kind: "Lot",
+    area: "East Campus",
+    address: "Walla Walla Rd NE · north of Lot E12",
+    location: [47.64943, -122.30355],
+    aisles: 2,
+    baseOccupancy: 0.75,
+    ratePerHour: 5,
+    hours: "6 AM – 10 PM",
+    features: ["Walkability"],
+    // Photo: Sara Kurfeß on Unsplash (Unsplash License) — unsplash.com/photos/xCm3FGX8lb8
+    photo: "/lots/lot-e19.jpg",
   },
 ];
+
+export interface CampusPlace {
+  id: string;
+  name: string;
+  kind: "Building" | "Area";
+  location: LatLng;
+  /** Other names people type, e.g. "CSE" for the Allen Center. */
+  aliases?: string[];
+}
+
+// Approximate coordinates of UW Seattle landmarks — good enough to rank nearby lots.
+export const PLACES: CampusPlace[] = [
+  { id: "denny-hall", name: "Denny Hall", kind: "Building", location: [47.6584, -122.30882] },
+  { id: "burke-museum", name: "Burke Museum", kind: "Building", location: [47.66052, -122.31156], aliases: ["burke", "museum"] },
+  { id: "art-building", name: "Art Building", kind: "Building", location: [47.6583, -122.3063], aliases: ["art"] },
+  { id: "suzzallo", name: "Suzzallo Library", kind: "Building", location: [47.6557, -122.3081], aliases: ["suzz", "library"] },
+  { id: "odegaard", name: "Odegaard Library", kind: "Building", location: [47.6565, -122.3104], aliases: ["ode", "library"] },
+  { id: "kane-hall", name: "Kane Hall", kind: "Building", location: [47.6567, -122.3091] },
+  { id: "red-square", name: "Red Square", kind: "Building", location: [47.656, -122.3095] },
+  { id: "hub", name: "Husky Union Building (HUB)", kind: "Building", location: [47.6553, -122.305], aliases: ["hub", "student union"] },
+  { id: "mary-gates", name: "Mary Gates Hall", kind: "Building", location: [47.655, -122.3077], aliases: ["mgh"] },
+  { id: "allen-center", name: "Paul G. Allen Center", kind: "Building", location: [47.6534, -122.3058], aliases: ["cse", "computer science"] },
+  { id: "husky-stadium", name: "Husky Stadium", kind: "Building", location: [47.6503, -122.3016], aliases: ["stadium"] },
+  { id: "uw-medical", name: "UW Medical Center", kind: "Building", location: [47.6498, -122.3092], aliases: ["hospital", "uwmc"] },
+  { id: "north-campus", name: "North Campus", kind: "Area", location: [47.6597, -122.3058] },
+  { id: "central-campus", name: "Central Campus", kind: "Area", location: [47.6556, -122.3078] },
+  { id: "east-campus", name: "East Campus", kind: "Area", location: [47.6555, -122.2992] },
+  { id: "west-campus", name: "West Campus", kind: "Area", location: [47.6538, -122.3148] },
+  { id: "south-campus", name: "South Campus", kind: "Area", location: [47.6497, -122.3098] },
+];
+
+export const getPlace = (id?: string | null) => PLACES.find((p) => p.id === id);
+
+const squash = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+export const findPlaces = (q: string) => {
+  const s = squash(q);
+  if (s.length < 2) return [];
+  return PLACES.filter((p) => squash(p.name).includes(s) || p.aliases?.some((a) => squash(a).startsWith(s)));
+};
+
+/** Average walking pace, ~4.8 km/h. */
+export const walkMinutes = (km: number) => Math.max(1, Math.round((km / 4.8) * 60));
 
 export const FILTERS: LotFeature[] = ["Near Me", "Low Cost", "Free Parking", "Late Hours", "Walkability", "EV Charging"];
 
@@ -202,7 +314,11 @@ export const findLotByQuery = (q: string) => {
   );
 };
 
-/** "N-06" — the hyphenated form used on signage in the Figma design. */
+/** Big title on a lot's photo: "LOT N-22", or the lot's own name for named garages. */
+export const displayTitle = (lot: ParkingLot) =>
+  (lot.name === `${lot.kind} ${lot.code}` ? `${lot.kind} ${signCode(lot)}` : lot.name).toUpperCase();
+
+/** "N-22" — the hyphenated form used on signage in the Figma design. */
 export const signCode = (lot: ParkingLot) => `${lot.code[0]}-${lot.code.slice(1)}`;
 
 export const priceFor = (lot: ParkingLot, hours: number, role: Role) =>

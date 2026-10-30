@@ -49,8 +49,8 @@ const initialState = (): AppState => ({
   reservations: [],
   session: null,
   history: [],
-  favorites: ["lot_n06", "lot_n03"],
-  recents: ["lot_n09", "lot_n06", "lot_n03"],
+  favorites: ["lot_n22", "lot_e1"],
+  recents: ["lot_n05", "lot_n22", "lot_e1"],
   defaultPayment: "apple-pay",
   theme: "system",
   statusRequest: null,
@@ -91,6 +91,19 @@ interface Store extends AppState {
 
 const StoreContext = createContext<Store | null>(null);
 
+/** Lots that were renamed to match the real campus map; old saves still use the old ids. */
+const RENAMED_LOTS: Record<string, string> = { lot_n09: "lot_n05", lot_n06: "lot_n22", lot_n03: "lot_e1", lot_e03: "lot_n20" };
+const renameLot = (id: string) => RENAMED_LOTS[id] ?? id;
+
+const migrateLotIds = (s: AppState): AppState => ({
+  ...s,
+  favorites: Array.from(new Set(s.favorites.map(renameLot))),
+  recents: Array.from(new Set(s.recents.map(renameLot))),
+  reservations: s.reservations.map((r) => ({ ...r, lotId: renameLot(r.lotId) })),
+  session: s.session ? { ...s.session, lotId: renameLot(s.session.lotId) } : null,
+  history: s.history.map((h) => ({ ...h, lotId: renameLot(h.lotId) })),
+});
+
 const pushRecent = (recents: string[], lotId: string) => [lotId, ...recents.filter((r) => r !== lotId)].slice(0, 6);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -110,7 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             saved.vehicles = [{ id: "veh_default", ...saved.user.vehicle }];
             saved.activeVehicleId = "veh_default";
           }
-          setState({ ...initialState(), ...saved });
+          setState(migrateLotIds({ ...initialState(), ...saved }));
         }
       }
     } catch {
