@@ -54,6 +54,16 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* On phones the page background shows only behind the status bar and in overscroll; Safari 26
+   tints the status bar from it (theme-color is ignored), so match the purple header band. The
+   app column (AppShell) keeps its own light background. */
+@media (max-width: 480px) {
+  html,
+  body {
+    background: rgb(var(--band));
+  }
+}
+
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
