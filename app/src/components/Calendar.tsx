@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
+import { toDateKey } from "@/services/mockData";
 
 interface CalendarProps {
   selectedDates: string[];
@@ -11,107 +12,73 @@ interface CalendarProps {
 }
 
 export default function Calendar({ selectedDates, onDateSelect, minDate }: CalendarProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [month, setMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
 
-  const daysInMonth = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth() + 1,
-    0
-  ).getDate();
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const firstWeekday = month.getDay();
+  const todayKey = toDateKey(new Date());
+  const canGoBack = !minDate || toDateKey(month) > minDate.slice(0, 8) + "01";
 
-  const firstDayOfMonth = new Date(
-    currentDate.getFullYear(),
-    currentDate.getMonth(),
-    1
-  ).getDay();
-
-  const monthName = currentDate.toLocaleString("default", { month: "long" });
-  const year = currentDate.getFullYear();
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-
-  const isDateDisabled = (day: number) => {
-    if (!minDate) return false;
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
-    return dateStr < minDate;
-  };
-
-  const isDateSelected = (day: number) => {
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
-    return selectedDates.includes(dateStr);
-  };
-
-  const handleDayClick = (day: number) => {
-    if (isDateDisabled(day)) return;
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
-    onDateSelect(dateStr);
-  };
-
-  const renderDays = () => {
-    const days = [];
-    
-    // Empty slots for previous month
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(<div key={`empty-${i}`} className="h-10 w-10" />);
-    }
-
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const disabled = isDateDisabled(day);
-      const selected = isDateSelected(day);
-      
-      days.push(
-        <button
-          key={day}
-          onClick={() => handleDayClick(day)}
-          disabled={disabled}
-          className={clsx(
-            "h-10 w-10 rounded-full flex items-center justify-center text-sm font-medium transition-all",
-            selected 
-              ? "bg-primary text-white shadow-md" 
-              : disabled 
-                ? "text-gray-300 cursor-not-allowed" 
-                : "text-gray-700 hover:bg-gray-100"
-          )}
-        >
-          {day}
-        </button>
-      );
-    }
-
-    return days;
-  };
+  const shift = (n: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1));
 
   return (
-    <div className="w-full max-w-sm mx-auto bg-white rounded-xl p-4">
-      <div className="flex justify-between items-center mb-4">
-        <button onClick={handlePrevMonth} className="p-1 hover:bg-gray-100 rounded-full">
-          <ChevronLeft size={20} className="text-gray-600" />
-        </button>
-        <h3 className="font-semibold text-gray-800">
-          {monthName} {year}
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-[17px] font-semibold">
+          {month.toLocaleString(undefined, { month: "long", year: "numeric" })}
         </h3>
-        <button onClick={handleNextMonth} className="p-1 hover:bg-gray-100 rounded-full">
-          <ChevronRight size={20} className="text-gray-600" />
-        </button>
+        <div className="flex gap-1">
+          <button
+            aria-label="Previous month"
+            disabled={!canGoBack}
+            onClick={() => shift(-1)}
+            className="w-9 h-9 grid place-items-center rounded-full hover:bg-surface disabled:opacity-30"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <button aria-label="Next month" onClick={() => shift(1)} className="w-9 h-9 grid place-items-center rounded-full hover:bg-surface">
+            <ChevronRight size={20} />
+          </button>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-7 gap-1 mb-2">
-        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-          <div key={day} className="h-10 w-10 flex items-center justify-center text-xs font-medium text-gray-400">
-            {day}
+
+      <div className="grid grid-cols-7 gap-y-1 text-center">
+        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+          <div key={i} className="h-8 grid place-items-center text-[12px] font-semibold text-subtle">
+            {d}
           </div>
         ))}
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1">
-        {renderDays()}
+        {Array.from({ length: firstWeekday }, (_, i) => (
+          <div key={`e${i}`} />
+        ))}
+        {Array.from({ length: daysInMonth }, (_, i) => {
+          const key = toDateKey(new Date(month.getFullYear(), month.getMonth(), i + 1));
+          const disabled = !!minDate && key < minDate;
+          const selected = selectedDates.includes(key);
+          return (
+            <div key={key} className="grid place-items-center">
+              <button
+                onClick={() => !disabled && onDateSelect(key)}
+                disabled={disabled}
+                aria-pressed={selected}
+                className={clsx(
+                  "w-10 h-10 rounded-full text-[15px] font-medium transition",
+                  selected
+                    ? "bg-brand text-white shadow-card"
+                    : disabled
+                      ? "text-subtle/50"
+                      : "hover:bg-brand-soft",
+                  key === todayKey && !selected && "ring-1 ring-brand/40 text-brand-text"
+                )}
+              >
+                {i + 1}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

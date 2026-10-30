@@ -1,250 +1,267 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { Camera, Scan, AlertCircle, X, Search, Pencil } from "lucide-react";
-import { MockService, User, Reservation, ParkingLot } from "@/services/mockData";
-import ReservationCard from "@/components/ReservationCard";
+import { useState } from "react";
 import Link from "next/link";
-
-const Webcam = dynamic(() => import("@/components/WebcamWrapper"), { ssr: false });
+import { useRouter } from "next/navigation";
+import { clsx } from "clsx";
+import { Camera, ChevronRight, Clock, Navigation, ScanLine } from "lucide-react";
+import LotSearch from "@/components/LotSearch";
+import Scanner from "@/components/Scanner";
+import { Button, Card, Eyebrow, MapThumb, Sheet, StatusPill, useToast } from "@/components/ui";
+import { useNow, useStore } from "@/lib/store";
+import {
+  LOTS,
+  USER_LOCATION,
+  availabilityAt,
+  distanceKm,
+  driveMinutes,
+  formatCountdown,
+  formatDay,
+  formatMoney,
+  formatTime,
+  getLot,
+  signCode,
+  splitClock,
+  statusFor,
+} from "@/services/mockData";
 
 export default function Home() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [activeReservation, setActiveReservation] = useState<Reservation | null>(null);
-  const [reservedLot, setReservedLot] = useState<ParkingLot | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
-  const webcamRef = useRef<any>(null);
+  const toast = useToast();
+  const { ready, user, session, upcoming, extendSession, endSession, defaultPayment } = useStore();
+  const now = useNow();
+  const [scanning, setScanning] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
-  useEffect(() => {
-    console.log("Home Page Mounted");
-    setIsMounted(true);
-    // Load initial data
-    const loadData = async () => {
-      try {
-        console.log("Loading data...");
-        const userData = await MockService.getUser();
-        const reservations = await MockService.getReservations();
-        const lots = await MockService.getLots();
+  const firstName = user.name.split(" ")[0];
 
-        setUser(userData);
-        console.log("Data loaded", { userData });
-        
-        // Find upcoming or active reservation
-        const upcoming = reservations.find(r => r.status === 'upcoming' || r.status === 'active');
-        if (upcoming) {
-          setActiveReservation(upcoming);
-          const lot = lots.find(l => l.id === upcoming.lotId);
-          setReservedLot(lot || null);
-        }
-      } catch (e) {
-        console.error("Error loading data", e);
-      }
-    };
-    loadData();
-  }, []);
-
-  const handleUserMedia = useCallback(() => {
-    console.log("Webcam: User Media Allowed");
-    setIsCameraReady(true);
-  }, []);
-
-  const handleUserMediaError = useCallback((error: string | DOMException) => {
-    console.error("Webcam: User Media Error", error);
-    setCameraError("Camera access denied or not available");
-  }, []);
-
-  const capture = useCallback(() => {
-    console.log("Initiating capture...");
-    setIsScanning(true);
-    
-    if (!webcamRef.current) {
-      console.error("Webcam reference is missing!");
-      // Try to recover or just warn
+  const onScanned = () => {
+    setScanning(false);
+    // A reservation starting within the next 2 hours is what the driver is arriving for.
+    if (upcoming && new Date(upcoming.start).getTime() - Date.now() < 2 * 3_600_000) {
+      router.push(`/arrive?res=${upcoming.id}`);
+      return;
     }
-
-    // Capture image immediately
-    const imageSrc = webcamRef.current?.getScreenshot();
-    console.log("Screenshot result:", imageSrc ? "Data captured" : "Null");
-    
-    if (imageSrc) {
-      try {
-        sessionStorage.setItem('scannedImage', imageSrc);
-        console.log("Image successfully saved to sessionStorage. Size:", imageSrc.length);
-      } catch (e) {
-        console.error("Storage error:", e);
-        alert("Failed to save image. Storage might be full.");
-        setIsScanning(false);
-        return;
-      }
-    } else {
-        console.warn("Failed to capture image from webcam");
-        // If we fail, try one more time after a short delay
-        setTimeout(() => {
-             const retryImage = webcamRef.current?.getScreenshot();
-             if (retryImage) {
-                 sessionStorage.setItem('scannedImage', retryImage);
-                 // Continue flow
-             } else {
-                 alert("Could not capture image. Please ensure camera is active.");
-                 setIsScanning(false);
-             }
-        }, 500);
-        return;
-    }
-
-    // Simulate AI processing
-    setTimeout(() => {
-      setIsScanning(false);
-      if (user) {
-        // Navigate to the result page
-        router.push('/scan-result');
-      }
-    }, 2000);
-  }, [user, router]);
+    const nearest = [...LOTS]
+      .filter((l) => availabilityAt(l, new Date()).open > 0)
+      .sort((a, b) => distanceKm(USER_LOCATION, a.location) - distanceKm(USER_LOCATION, b.location))[0];
+    router.push(`/arrive?lot=${nearest.id}`);
+  };
 
   return (
-    <main className="flex min-h-screen flex-col px-6 pt-8 bg-surface">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-extrabold text-primary tracking-tight">
-            Hello, {user?.name.split(' ')[0] || 'Driver'}
-          </h1>
-          <p className="text-primary/70 text-lg font-medium mt-1">Ready to park?</p>
-        </div>
-      </div>
+    <main className="min-h-[100dvh] bg-bg">
+      <header className="bg-band text-white px-6 pt-[max(env(safe-area-inset-top),28px)] pb-7 rounded-b-[28px]">
+        <h1 className="text-[34px] font-medium tracking-tight">Hello, {firstName}</h1>
+        <p className="text-white/70 text-[15px] mt-1 mb-5">
+          {session ? "You're parked. We'll keep an eye on the clock." : "Ready to park?"}
+        </p>
+        <LotSearch placeholder="Search lot #" onPick={(lot) => router.push(`/map?lot=${lot.id}`)} />
+      </header>
 
-      {/* Lot Search */}
-      <div className="mb-8">
-        <div className="relative">
-          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-muted">
-            <Search size={20} />
-          </div>
-          <input 
-            type="text" 
-            placeholder="Enter lot number..." 
-            className="w-full pl-12 pr-4 py-4 bg-white rounded-2xl shadow-sm border border-gray-100 focus:ring-2 focus:ring-primary outline-none text-text"
+      <div className="px-6 pt-6 space-y-6 pb-8">
+        {/* AI Quick Scan */}
+        <button
+          onClick={() => setScanning(true)}
+          className="group w-full rounded-card border-[3px] border-dashed border-line bg-surface hover:border-brand/40 transition flex items-center gap-4 p-5 text-left"
+        >
+          <span className="grid place-items-center w-16 h-16 rounded-2xl bg-brand text-white shadow-lift group-active:scale-95 transition">
+            <Camera size={30} />
+          </span>
+          <span className="flex-1">
+            <span className="flex items-center gap-1.5 text-[18px] font-semibold">
+              <ScanLine size={18} className="text-brand-text" /> AI Quick Scan
+            </span>
+            <span className="block text-[14px] text-muted mt-0.5">Snap your plate to check in and pay on arrival</span>
+          </span>
+          <ChevronRight className="text-subtle" />
+        </button>
+
+        {!ready ? (
+          <div className="h-40 rounded-card bg-surface animate-pulse" />
+        ) : session ? (
+          <ActiveSession
+            now={now}
+            onExtend={() => {
+              const charge = extendSession(30);
+              toast(`Added 30 min · ${formatMoney(charge)} on ${defaultPayment === "apple-pay" ? "Apple Pay" : "Visa 4242"}`);
+            }}
+            onEnd={() => setConfirmEnd(true)}
           />
-        </div>
-      </div>
-
-      {/* AI Quick Scan Section */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-text mb-3 flex items-center">
-          <Scan className="mr-2 text-primary" size={20} />
-          AI Quick Scan
-        </h2>
-        <div className="relative rounded-2xl overflow-hidden bg-black aspect-video shadow-lg">
-          {!isCameraActive ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-primary text-white">
-              <button 
-                onClick={() => {
-                  setIsCameraActive(true);
-                  setIsCameraReady(false);
-                  setCameraError(null);
-                }}
-                className="flex flex-col items-center justify-center space-y-3 group"
-              >
-                <div className="bg-secondary p-4 rounded-full shadow-lg shadow-primary/50 group-hover:scale-110 transition-transform">
-                  <Camera size={32} className="text-primary" />
-                </div>
-                <span className="font-medium text-sm text-white/80">Tap to Scan Vehicle</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              <button 
-                 onClick={() => setIsCameraActive(false)}
-                 className="absolute top-3 right-3 z-20 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-               >
-                 <X size={20} />
-               </button>
-              {cameraError ? (
-                <div className="w-full h-full flex items-center justify-center bg-primary text-white p-4 text-center">
-                  <p>{cameraError}</p>
-                </div>
-              ) : (
-                <Webcam
-                  audio={false}
-                  webcamRef={webcamRef}
-                  screenshotFormat="image/jpeg"
-                  screenshotQuality={0.7}
-                  videoConstraints={{ 
-                    facingMode: "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                  }}
-                  className="w-full h-full object-cover opacity-80"
-                  onUserMedia={handleUserMedia}
-                  onUserMediaError={handleUserMediaError}
-                />
-              )}
-              {!cameraError && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  {isScanning ? (
-                    <div className="flex flex-col items-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-2"></div>
-                      <p className="text-white font-medium drop-shadow-md">Scanning Vehicle...</p>
-                    </div>
-                  ) : (
-                    isCameraReady && (
-                      <button
-                        onClick={capture}
-                        className="bg-white/20 backdrop-blur-md border-2 border-white/50 p-4 rounded-full hover:bg-white/30 transition-all animate-in zoom-in duration-300"
-                      >
-                        <Camera className="text-white" size={32} />
-                      </button>
-                    )
-                  )}
-                </div>
-              )}
-              {!cameraError && (
-                <div className="absolute bottom-4 left-0 right-0 text-center">
-                  <p className="text-white/80 text-xs">Align license plate within frame</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Active/Upcoming Reservation */}
-      <div className="mb-8">
-        <h2 className="text-lg font-bold text-text mb-3">
-          {activeReservation?.status === 'active' ? 'Active Session' : 'Upcoming Reservation'}
-        </h2>
-        {activeReservation && reservedLot ? (
-          <ReservationCard reservation={activeReservation} lot={reservedLot} />
+        ) : upcoming ? (
+          <UpcomingCard now={now} />
         ) : (
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 text-center">
-            <p className="text-text-muted mb-4">No active parking sessions.</p>
-            <Link href="/map" className="text-primary font-medium hover:underline">
-              Find a spot now &rarr;
-            </Link>
-          </div>
+          <NearbyLots />
         )}
       </div>
 
-      {/* Quick Actions / Tips */}
+      {scanning && <Scanner onClose={() => setScanning(false)} onDone={onScanned} />}
+
+      <Sheet open={confirmEnd} onClose={() => setConfirmEnd(false)} title="End parking?">
+        <p className="text-muted text-[15px] mb-5">
+          Your session will close now. Any time left isn&apos;t refunded for reserved spots.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <Button variant="outline" onClick={() => setConfirmEnd(false)}>
+            Keep parking
+          </Button>
+          <Button
+            variant="brand"
+            onClick={() => {
+              endSession();
+              setConfirmEnd(false);
+              toast("Session ended. Drive safe!");
+            }}
+          >
+            End now
+          </Button>
+        </div>
+      </Sheet>
+    </main>
+  );
+}
+
+function ActiveSession({ now, onExtend, onEnd }: { now: number; onExtend: () => void; onEnd: () => void }) {
+  const { session } = useStore();
+  if (!session) return null;
+  const lot = getLot(session.lotId)!;
+  const left = new Date(session.endsAt).getTime() - now;
+  const { h, m, s } = splitClock(left);
+  const expired = left <= 0;
+  const low = !expired && left < 10 * 60_000;
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return (
+    <section className="space-y-5 animate-fade-up">
       <div>
-        <h2 className="text-lg font-bold text-text mb-3">Quick Tips</h2>
-        <div className="bg-primary/5 p-4 rounded-xl flex items-start">
-          <AlertCircle className="text-primary mr-3 flex-shrink-0 mt-0.5" size={20} />
+        <Eyebrow className="mb-2">{expired ? "Time's up" : "Time remaining"}</Eyebrow>
+        <div className="flex rounded-card overflow-hidden text-white shadow-lift">
+          <div
+            className={clsx(
+              "flex-1 px-5 py-4 transition-colors",
+              expired ? "bg-danger" : low ? "bg-warning" : "bg-brand-deep"
+            )}
+            role="timer"
+            aria-live="off"
+          >
+            <div className="flex items-end gap-1 font-light text-[46px] leading-none tabular tracking-tight">
+              <span>{h}</span>:<span>{pad(m)}</span>:<span>{pad(s)}</span>
+            </div>
+            <div className="flex gap-6 text-[12px] text-white/75 mt-1.5 pl-0.5">
+              <span>Hours</span>
+              <span>Minutes</span>
+              <span>Seconds</span>
+            </div>
+          </div>
+          <button
+            onClick={onExtend}
+            className={clsx(
+              "w-[104px] border-l-[6px] border-bg text-[18px] font-medium active:brightness-125 transition",
+              expired ? "bg-danger" : low ? "bg-warning" : "bg-brand-deep"
+            )}
+          >
+            +30 min
+          </button>
+        </div>
+        <p className="text-[14px] text-muted mt-2">
+          {expired ? "Extend now or move your car to avoid a citation." : `Ends at ${formatTime(session.endsAt)} · ${formatMoney(session.amount)} paid`}
+        </p>
+      </div>
+
+      <div>
+        <Eyebrow className="mb-2">Parked at</Eyebrow>
+        <Card className="flex items-center justify-between p-5 shadow-none border-2">
           <div>
-            <h4 className="font-bold text-primary text-sm">Campus Event Today</h4>
-            <p className="text-text-muted text-xs mt-1">
-              Lot E03 is reserved for the graduation ceremony until 5 PM.
+            <p className="text-[14px] font-semibold text-subtle">{lot.kind}</p>
+            <p className="text-[28px] font-normal leading-tight">
+              {signCode(lot)}/ {session.spotId}
+            </p>
+            <p className="text-[13px] text-muted mt-0.5">{lot.address}</p>
+          </div>
+          <MapThumb at={lot.location} className="w-[100px] h-[68px]" />
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" size="md" href={`/map?lot=${lot.id}`}>
+          View on map
+        </Button>
+        <Button variant="danger" size="md" className="border border-danger/30" onClick={onEnd}>
+          End parking
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function UpcomingCard({ now }: { now: number }) {
+  const { upcoming } = useStore();
+  if (!upcoming) return null;
+  const lot = getLot(upcoming.lotId)!;
+  const untilStart = new Date(upcoming.start).getTime() - now;
+  const started = untilStart <= 0;
+
+  return (
+    <section className="animate-fade-up">
+      <Eyebrow className="mb-2">Upcoming reservation</Eyebrow>
+      <Card className="p-5">
+        <Link href={`/reservation/${upcoming.id}`} className="flex items-start justify-between">
+          <div>
+            <p className="text-[14px] font-semibold text-subtle">{lot.kind}</p>
+            <p className="text-[28px] leading-tight">
+              {signCode(lot)}/{upcoming.spotId}
+            </p>
+            <p className="text-[14px] text-muted mt-1 flex items-center gap-1.5">
+              <Clock size={14} /> {formatDay(upcoming.start)} · {formatTime(upcoming.start)} – {formatTime(upcoming.end)}
             </p>
           </div>
+          <MapThumb at={lot.location} className="w-[94px] h-[68px]" />
+        </Link>
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-brand-soft px-4 py-3">
+          <span className="text-[14px] text-brand-text font-medium">{started ? "Your spot is held" : "Starting in"}</span>
+          <span className="text-[20px] font-semibold tabular text-brand-text">
+            {started ? `until ${formatTime(upcoming.end)}` : formatCountdown(untilStart)}
+          </span>
         </div>
+        <Button block className="mt-4" href={`/navigate?res=${upcoming.id}`}>
+          <Navigation size={18} /> Take Me There
+        </Button>
+      </Card>
+    </section>
+  );
+}
+
+function NearbyLots() {
+  const lots = [...LOTS]
+    .map((l) => ({ lot: l, km: distanceKm(USER_LOCATION, l.location), ...availabilityAt(l, new Date()) }))
+    .sort((a, b) => a.km - b.km)
+    .slice(0, 3);
+
+  return (
+    <section className="animate-fade-up">
+      <div className="flex items-center justify-between mb-2">
+        <Eyebrow>Nearby right now</Eyebrow>
+        <Link href="/map" className="text-[14px] font-semibold text-brand-text">
+          See map
+        </Link>
       </div>
-    </main>
+      <div className="space-y-3">
+        {lots.map(({ lot, km, open, total }) => (
+          <Link key={lot.id} href={`/map?lot=${lot.id}`} className="block">
+            <Card className="flex items-center gap-4 p-3 pr-4 hover:border-brand/30 transition">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={lot.photo} alt="" className="w-[72px] h-[56px] rounded-xl object-cover" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-semibold truncate">{lot.name}</p>
+                <p className="text-[13px] text-muted">
+                  {driveMinutes(km)} min · {formatMoney(lot.ratePerHour)}
+                  {lot.ratePerHour ? "/hr" : ""}
+                </p>
+              </div>
+              <StatusPill status={statusFor(open, total)} open={open} total={total} />
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </section>
   );
 }

@@ -1,167 +1,281 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { MockService, ParkingLot } from "@/services/mockData";
-import FilterChip from "@/components/FilterChip";
-import SavedLotsDrawer from "@/components/SavedLotsDrawer";
-import { MapPin, Navigation, Calendar, Search, SlidersHorizontal } from "lucide-react";
-import { TrafficLight } from "@/components/icons/TrafficLight";
-import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
+import { CalendarClock, ChevronUp, Clock, Heart, LocateFixed, MapPin, Navigation, SlidersHorizontal, X } from "lucide-react";
+import LotSearch from "@/components/LotSearch";
+import { Button, Chip, IconButton, StatusPill } from "@/components/ui";
+import { useStore } from "@/lib/store";
+import {
+  CITY_LABEL,
+  FILTERS,
+  LOTS,
+  LotFeature,
+  ParkingLot,
+  USER_LOCATION,
+  availabilityAt,
+  distanceKm,
+  driveMinutes,
+  formatMoney,
+  getLot,
+  rateFor,
+  signCode,
+  statusFor,
+} from "@/services/mockData";
 
-const Map = dynamic(() => import("@/components/Map"), { ssr: false });
+const MapView = dynamic(() => import("@/components/MapView"), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-surface animate-pulse" />,
+});
 
-export default function MapPage() {
-  const [lots, setLots] = useState<ParkingLot[]>([]);
-  const [selectedFilter, setSelectedFilter] = useState("Near Me");
-  const [selectedLot, setSelectedLot] = useState<ParkingLot | null>(null);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+const NEAR_KM = 1.1;
+/** Centre slightly south of the lot so its pin sits above the bottom sheet. */
+const aboveSheet = (lot: ParkingLot): [number, number] => [lot.location[0] - 0.0024, lot.location[1]];
 
-  const filters = [
-    "Near Me",
-    "Distance to Destination",
-    "Walkability",
-    "Late Hours",
-    "Free Parking",
-    "Low Cost",
-  ];
+function matches(lot: ParkingLot, f: LotFeature) {
+  if (f === "Near Me") return distanceKm(USER_LOCATION, lot.location) <= NEAR_KM;
+  if (f === "Low Cost") return lot.ratePerHour > 0 && lot.ratePerHour <= 4;
+  return lot.features.includes(f);
+}
+
+function MapScreen() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const [selectedId, setSelectedId] = useState<string | null>(params.get("lot"));
+  const [filters, setFilters] = useState<LotFeature[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [focus, setFocus] = useState<[number, number] | undefined>(getLot(params.get("lot")) ? aboveSheet(getLot(params.get("lot"))!) : undefined);
 
   useEffect(() => {
-    MockService.getLots().then(setLots);
-  }, []);
+    const id = params.get("lot");
+    if (id && getLot(id)) {
+      setSelectedId(id);
+      setFocus(aboveSheet(getLot(id)!));
+    }
+  }, [params]);
 
-  const filteredLots = lots.filter((lot) => {
-    if (selectedFilter === "Near Me") return true; // Show all for demo
-    return lot.features.includes(selectedFilter);
-  });
+  const lots = useMemo(() => LOTS.filter((l) => filters.every((f) => matches(l, f))), [filters]);
+  const selected = getLot(selectedId);
+
+  const select = (lot: ParkingLot) => {
+    setSelectedId(lot.id);
+    setFocus(aboveSheet(lot));
+    router.replace(`/map?lot=${lot.id}`, { scroll: false });
+  };
+
+  const clear = () => {
+    setSelectedId(null);
+    router.replace("/map", { scroll: false });
+  };
 
   return (
-    <main className="flex min-h-screen flex-col relative">
-      {/* Map Container */}
+    <main className="relative h-[calc(100dvh-72px-env(safe-area-inset-bottom))] overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <Map 
-          lots={filteredLots} 
-          selectedLot={selectedLot} 
-          onLotSelect={setSelectedLot} 
-        />
+        <MapView lots={lots} selectedId={selectedId} onSelect={select} focus={focus} />
       </div>
 
-      {/* Top Search & Filter Bar */}
-      <div className="z-10 pt-6 px-4 pb-4 bg-gradient-to-b from-white/90 via-white/80 to-transparent pointer-events-none">
-        {/* Location Header */}
-        <div className="flex justify-end mb-4">
-          <div className="flex items-center px-2 py-1 opacity-50 select-none">
-            <MapPin size={14} className="text-gray-800 mr-1" />
-            <span className="text-xs font-semibold text-gray-800">Seattle, WA</span>
+      {/* Header band */}
+      <div className="absolute top-0 inset-x-0 z-[1000]">
+        <header className="bg-band text-white px-5 pt-[max(env(safe-area-inset-top),14px)] pb-4 rounded-b-[24px] shadow-lift">
+          <div className="flex justify-end mb-2">
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 h-7 text-[12px] font-medium">
+              <MapPin size={13} /> {CITY_LABEL}
+            </span>
           </div>
-        </div>
-
-        {/* Search Bar Row */}
-        <div className="flex gap-3 mb-4 pointer-events-auto">
-          <div className="flex-1 relative">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted">
-              <Search size={20} />
-            </div>
-            <input 
-              type="text" 
-              placeholder="Search parking..." 
-              className="w-full pl-10 pr-4 py-3 bg-white rounded-xl shadow-md border-none focus:ring-2 focus:ring-primary outline-none text-text"
-            />
+          <div className="flex items-center gap-3">
+            <LotSearch placeholder="Where to park?" onPick={select} className="flex-1" />
+            <IconButton
+              label="Filters"
+              onClick={() => setShowFilters((v) => !v)}
+              className={clsx("relative", showFilters ? "bg-white text-brand" : "bg-white/15 text-white")}
+            >
+              <SlidersHorizontal size={20} />
+              {filters.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full bg-accent text-accent-ink text-[11px] font-bold grid place-items-center">
+                  {filters.length}
+                </span>
+              )}
+            </IconButton>
           </div>
-          <button 
-            onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className={clsx(
-              "p-3 rounded-xl shadow-md transition-colors",
-              isFilterOpen ? "bg-primary text-white" : "bg-white text-text hover:bg-surface"
-            )}
-          >
-            <SlidersHorizontal size={24} />
-          </button>
-        </div>
+        </header>
 
-        {/* Filter Chips Horizontal Scroll */}
-        {isFilterOpen && (
-          <div className="pointer-events-auto overflow-x-auto pb-2 hide-scrollbar flex space-x-2 animate-in fade-in slide-in-from-top-2">
-            {filters.map((filter) => (
-              <FilterChip
-                key={filter}
-                label={filter}
-                isActive={selectedFilter === filter}
-                onClick={() => {
-                  setSelectedFilter(filter);
-                  // Optional: Keep open to allow multiple selections or close immediately
-                  // setIsFilterOpen(false); 
-                }}
-              />
+        {showFilters && (
+          <div className="flex gap-2 overflow-x-auto no-scrollbar px-5 py-3 animate-fade-up">
+            {FILTERS.map((f) => (
+              <Chip
+                key={f}
+                active={filters.includes(f)}
+                onClick={() => setFilters((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]))}
+                className="shadow-card"
+              >
+                {f}
+              </Chip>
             ))}
+            {filters.length > 0 && (
+              <Chip onClick={() => setFilters([])} className="shadow-card">
+                Clear
+              </Chip>
+            )}
+          </div>
+        )}
+        {filters.length > 0 && lots.length === 0 && (
+          <div className="mx-5 mt-1 rounded-2xl bg-card text-ink shadow-lift px-4 py-3 text-[14px]">
+            No lots match those filters.{" "}
+            <button className="font-semibold text-brand-text" onClick={() => setFilters([])}>
+              Clear filters
+            </button>
           </div>
         )}
       </div>
 
-      {/* Map Legend */}
-      <div className="absolute top-44 right-4 z-0 pointer-events-auto bg-surface/90 backdrop-blur-md p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-2 animate-in fade-in slide-in-from-right-4">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-green-600 shadow-sm ring-1 ring-green-200"></div>
-          <span className="text-xs font-semibold text-text-muted">Available</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-orange-500 shadow-sm ring-1 ring-orange-200"></div>
-          <span className="text-xs font-semibold text-text-muted">Busy</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-red-600 shadow-sm ring-1 ring-red-200"></div>
-          <span className="text-xs font-semibold text-text-muted">Full</span>
-        </div>
-      </div>
+      <IconButton
+        label="Center on me"
+        onClick={() => setFocus([...USER_LOCATION] as [number, number])}
+        className="absolute right-4 z-[1000] bg-card text-brand-text shadow-lift"
+        style={{ bottom: selected ? 372 : 132 }}
+      >
+        <LocateFixed size={20} />
+      </IconButton>
 
-      {/* Lot Details Drawer */}
-      {selectedLot && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl p-6 z-30 animate-in slide-in-from-bottom-10 fade-in duration-300 pb-28">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">{selectedLot.name}</h2>
-              <p className="text-gray-500 text-sm mt-1">{selectedLot.availableSpots} spots available</p>
-            </div>
-            <button 
-              onClick={() => setSelectedLot(null)}
-              className="text-gray-400 hover:text-gray-900 p-2"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="flex space-x-2 mb-6">
-            {selectedLot.features.map(f => (
-              <span key={f} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                {f}
-              </span>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <a 
-              href={`https://www.google.com/maps/dir/?api=1&destination=${selectedLot.location.lat},${selectedLot.location.lng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-900 py-3 rounded-xl font-medium transition-colors"
-            >
-              <Navigation size={18} className="mr-2" />
-              Navigate
-            </a>
-            <Link 
-              href={`/reservation?lotId=${selectedLot.id}`}
-              className="flex items-center justify-center bg-primary hover:bg-primary/90 text-white py-3 rounded-xl font-medium transition-colors"
-            >
-              <Calendar size={18} className="mr-2" />
-              Reserve
-            </Link>
-          </div>
-        </div>
-      )}
-
-      <SavedLotsDrawer />
+      {selected ? <LotSheet lot={selected} onClose={clear} /> : <SavedDrawer onPick={select} />}
     </main>
   );
 }
 
+function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
+  const { user, favorites, toggleFavorite } = useStore();
+  const { open, total } = availabilityAt(lot, new Date());
+  const status = statusFor(open, total);
+  const km = distanceKm(USER_LOCATION, lot.location);
+  const saved = favorites.includes(lot.id);
+
+  return (
+    <section
+      key={lot.id}
+      className="absolute bottom-0 inset-x-0 z-[1000] bg-band text-white rounded-t-[28px] shadow-sheet px-5 pt-3 pb-5 animate-sheet-up"
+      aria-label={`${lot.name} details`}
+    >
+      <div className="mx-auto h-1 w-10 rounded-full bg-white/40 mb-3" />
+      <div className="relative h-[150px] rounded-[20px] overflow-hidden border border-white/30">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={lot.photo} alt={`${lot.name} aerial view`} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+        <p className="absolute left-4 bottom-3 text-[24px] font-light tracking-wide">
+          {lot.kind.toUpperCase()} {signCode(lot)}
+        </p>
+        <div className="absolute right-2 top-2 flex gap-1">
+          <IconButton
+            label={saved ? "Remove from saved" : "Save lot"}
+            onClick={() => toggleFavorite(lot.id)}
+            className="bg-black/35 backdrop-blur"
+          >
+            <Heart size={20} className={saved ? "fill-accent text-accent" : ""} />
+          </IconButton>
+          <IconButton label="Close" onClick={onClose} className="bg-black/35 backdrop-blur">
+            <X size={20} />
+          </IconButton>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-4">
+        <div>
+          <p className="text-[13px] text-white/70">{lot.address}</p>
+          <p className="text-[13px] text-white/70 flex items-center gap-1 mt-0.5">
+            <Clock size={12} /> {lot.hours}
+          </p>
+        </div>
+        <span className="rounded-full bg-white p-0.5">
+          <StatusPill status={status} open={open} total={total} />
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-4 text-center">
+        {[
+          { k: "Rate", v: lot.ratePerHour ? `${formatMoney(rateFor(lot, user.role))}/hr` : "Free" },
+          { k: "Drive", v: `${driveMinutes(km)} min` },
+          { k: "Distance", v: `${km.toFixed(1)} km` },
+        ].map((x) => (
+          <div key={x.k} className="rounded-2xl bg-white/10 py-2.5">
+            <p className="text-[12px] text-white/60">{x.k}</p>
+            <p className="text-[16px] font-semibold">{x.v}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <Button variant="brand" className="!bg-brand-deep" href={`/navigate?lot=${lot.id}`} aria-disabled={status === "Full"}>
+          <Navigation size={17} /> Navigate
+        </Button>
+        <Button href={`/reserve?lot=${lot.id}`}>
+          <CalendarClock size={18} /> Reserve
+        </Button>
+      </div>
+      {status === "Full" && <p className="text-[13px] text-white/70 mt-2 text-center">Full right now — you can still reserve for later.</p>}
+    </section>
+  );
+}
+
+function SavedDrawer({ onPick }: { onPick: (lot: ParkingLot) => void }) {
+  const { favorites, recents } = useStore();
+  const [open, setOpen] = useState(false);
+  const rows = [
+    { title: "Recents", ids: recents },
+    { title: "Saved", ids: favorites },
+  ];
+
+  return (
+    <section
+      className={clsx(
+        "absolute bottom-0 inset-x-0 z-[1000] bg-band text-white rounded-t-[28px] shadow-sheet transition-[height] duration-300 overflow-hidden",
+        open ? "h-[440px]" : "h-[112px]"
+      )}
+    >
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full pt-3 pb-2 flex flex-col items-center"
+        aria-expanded={open}
+      >
+        <span className="h-1 w-10 rounded-full bg-white/40" />
+        <span className="mt-3 w-full px-5 flex items-center justify-between">
+          <span className="text-[17px] font-semibold">Recents & Saved</span>
+          <ChevronUp size={20} className={clsx("transition-transform", open && "rotate-180")} />
+        </span>
+      </button>
+      {!open && <p className="px-5 text-[13px] text-white/60">Tap a pin or open your lots</p>}
+      <div className={clsx("transition-opacity", open ? "opacity-100" : "opacity-0 pointer-events-none")}>
+        {rows.map((row) => (
+          <div key={row.title} className="mt-3">
+            <p className="px-5 text-[15px] font-medium text-white/80 mb-2">{row.title}</p>
+            {row.ids.length === 0 ? (
+              <p className="px-5 text-[14px] text-white/50 h-[118px]">Nothing here yet — tap ♡ on a lot to save it.</p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
+                {row.ids.map((id) => {
+                  const lot = getLot(id);
+                  if (!lot) return null;
+                  return (
+                    <button key={id} onClick={() => onPick(lot)} className="shrink-0 w-[138px] text-left">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={lot.photo} alt="" className="w-[138px] h-[92px] rounded-[15px] object-cover border border-white/70" />
+                      <span className="block text-[14px] text-white/80 mt-1.5 text-center">{lot.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default function MapPage() {
+  return (
+    <Suspense fallback={<div className="h-[100dvh] bg-surface" />}>
+      <MapScreen />
+    </Suspense>
+  );
+}
