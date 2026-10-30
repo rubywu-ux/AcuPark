@@ -22,7 +22,8 @@ Payment is UI-only (Apple Pay or a saved card); nothing is charged.
 -   **Live map** (Leaflet + OpenStreetMap) with open-stall counts on every pin, colored Available / Busy / Full.
 -   **Real UW lots**: N01, N02, N05, N22, E1, E12, E19 and Padelford Garage sit at their OpenStreetMap positions (capacities, rates and hours are mock data).
 -   **Campus building search**: type a building or area (Denny Hall, Burke Museum, Art Building, East Campus…) and the drawer lists nearby lots by walking time, with the closest open lot tagged **Best match**.
--   **Draggable lots drawer**: Recents and Saved tabs; drag anywhere on it to open or close. Lot cards drag down to dismiss.
+-   **Draggable lots drawer**: rests as a slim bar above the nav (*Your lots* with recent ⟲ and saved ♥ counts) so the map gets the screen. Drag or tap it up for the Recents and Saved tabs; drag down to close. Lot cards drag down to dismiss.
+-   **Phone-first layout**: a compact map header (the city sits inside the search field), a 60px bottom nav, and purple behind the iPhone status bar and Dynamic Island, including on iOS 26 Safari.
 -   **Filters**: Near Me, Low Cost, Free Parking, Late Hours, Walkability, EV Charging.
 -   **Reservations**: pick a stall on a slanted-bay aisle layout (Entry → Exit), then dates, start time and duration; "Starting in" countdown and *Take Me There*.
 -   **Navigation**: simulated turn-by-turn drive with a traffic-light count and a live "spot held · N open" badge, plus a Google Maps hand-off. Arriving with auto-pay on pays automatically.
@@ -78,6 +79,16 @@ This project was built using the **"Vibe Coding"** methodology—a flow-state dr
 -   **Icons**: [Lucide React](https://lucide.dev/)
 -   **Camera**: [React Webcam](https://www.npmjs.com/package/react-webcam)
 -   **Build Tool**: Turbopack (`next dev --turbo`)
+-   **Hosting**: [Vercel](https://vercel.com/), with the project's Root Directory set to `app`
+
+## 🌐 Deployment
+
+The app is live at **https://acupark-ten.vercel.app** on Vercel (project `acupark`, Root Directory `app`), connected to this repo:
+
+-   **Merging to `main`** deploys to production automatically, in about a minute.
+-   **Every pull request** gets its own preview deployment (the *Vercel* check on the PR), plus a **Build and Lint** GitHub Action.
+
+There's nothing to deploy by hand: publish by merging a PR.
 
 ## 🚀 Getting Started
 
@@ -166,6 +177,7 @@ Back on **Home**, watch the timer, tap **+30 min**, or **End parking**. **Settin
 
 ## 📚 Documentation
 
+-   **[Portfolio notes](docs/project/PORTFOLIO_NOTES.md)**: the case-study summary — problem, key flows, design decisions, technical highlights and assets.
 -   **[User flows](docs/project/USER_FLOWS.md)**: every screen and path, step by step.
 -   **[Project brief](docs/project/PROJECT_BRIEF.md)**: original requirements and current status.
 -   **[Credits](docs/CREDITS.md)**: photo, map data and mascot notes.

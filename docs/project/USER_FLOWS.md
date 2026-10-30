@@ -62,7 +62,7 @@ Typing a building in the Home search (e.g. *Denny Hall*) opens the map near that
 
 ## 4. Find and reserve
 
-1. **Map**: tap a pin, or search a lot code or a building/area.
+1. **Map**: tap a pin, or search a lot code or a building/area. The lots drawer rests as a slim bar above the nav — *Your lots* with recent (⟲) and saved (♥) counts — and pulls up to Recents / Saved tabs.
    - Searching a building drops a labelled pin, frames it with its three closest lots, and opens the drawer as **Near Denny Hall**, sorted by walking time with the closest open lot tagged **Best match**.
 2. **Lot details** sheet: photo, address, hours, open count, rate, drive time, and walk (when a building was searched) or distance. Drag down to close.
 3. **Reserve** (`/reserve?lot=…`):

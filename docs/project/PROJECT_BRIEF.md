@@ -45,6 +45,7 @@ Everything in section 2 is built and working end to end with mock data. Since th
 - **Real UW lots** (N01, N02, N05, N22, E1, E12, E19, Padelford Garage) at their OpenStreetMap positions.
 - **Verified campus status** that can only change through a reviewed request.
 - **Multiple saved vehicles**, a draggable lots drawer, drag-to-dismiss lot cards, and Auto / Light / Dark themes.
-- **A branded launch screen**: on UW purple, a sticker-style Dubs barks "Go Dawgs!" above the refreshed AcuPark logo, on every open.
+- **A branded launch screen**: on UW purple, a sticker-style Dubs barks "Go Dawgs!" above the refreshed AcuPark logo, on every open. It runs at 60 fps in mobile Safari.
+- **Live on Vercel** at https://acupark-ten.vercel.app, with auto-deploys from `main` and tuned for phones: purple status bar, compact map header, slim lots drawer and a shorter nav.
 
 See [USER_FLOWS.md](USER_FLOWS.md) for the flows step by step.
