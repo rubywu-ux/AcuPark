@@ -4,8 +4,9 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clsx } from "clsx";
-import { CalendarClock, ChevronUp, Clock, Heart, LocateFixed, MapPin, Navigation, SlidersHorizontal, X } from "lucide-react";
+import { CalendarClock, Clock, Heart, LocateFixed, MapPin, Navigation, SlidersHorizontal, X } from "lucide-react";
 import LotSearch from "@/components/LotSearch";
+import LotsDrawer from "@/components/LotsDrawer";
 import { Button, Chip, IconButton, StatusPill } from "@/components/ui";
 import { useStore } from "@/lib/store";
 import {
@@ -46,6 +47,7 @@ function MapScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(params.get("lot"));
   const [filters, setFilters] = useState<LotFeature[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [drawerH, setDrawerH] = useState(150);
   const [focus, setFocus] = useState<[number, number] | undefined>(getLot(params.get("lot")) ? aboveSheet(getLot(params.get("lot"))!) : undefined);
 
   useEffect(() => {
@@ -133,13 +135,16 @@ function MapScreen() {
       <IconButton
         label="Center on me"
         onClick={() => setFocus([...USER_LOCATION] as [number, number])}
-        className="absolute right-4 z-[1000] bg-card text-brand-text shadow-lift"
-        style={{ bottom: selected ? 372 : 132 }}
+        className={clsx(
+          "absolute right-4 z-[1000] bg-card text-brand-text shadow-lift transition-opacity",
+          !selected && drawerH > 420 && "opacity-0 pointer-events-none"
+        )}
+        style={{ bottom: (selected ? 360 : drawerH) + 12 }}
       >
         <LocateFixed size={20} />
       </IconButton>
 
-      {selected ? <LotSheet lot={selected} onClose={clear} /> : <SavedDrawer onPick={select} />}
+      {selected ? <LotSheet lot={selected} onClose={clear} /> : <LotsDrawer onPick={select} onHeightChange={setDrawerH} />}
     </main>
   );
 }
@@ -213,61 +218,6 @@ function LotSheet({ lot, onClose }: { lot: ParkingLot; onClose: () => void }) {
         </Button>
       </div>
       {status === "Full" && <p className="text-[13px] text-white/70 mt-2 text-center">Full right now — you can still reserve for later.</p>}
-    </section>
-  );
-}
-
-function SavedDrawer({ onPick }: { onPick: (lot: ParkingLot) => void }) {
-  const { favorites, recents } = useStore();
-  const [open, setOpen] = useState(false);
-  const rows = [
-    { title: "Recents", ids: recents },
-    { title: "Saved", ids: favorites },
-  ];
-
-  return (
-    <section
-      className={clsx(
-        "absolute bottom-0 inset-x-0 z-[1000] bg-band text-white rounded-t-[28px] shadow-sheet transition-[height] duration-300 overflow-hidden",
-        open ? "h-[440px]" : "h-[112px]"
-      )}
-    >
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full pt-3 pb-2 flex flex-col items-center"
-        aria-expanded={open}
-      >
-        <span className="h-1 w-10 rounded-full bg-white/40" />
-        <span className="mt-3 w-full px-5 flex items-center justify-between">
-          <span className="text-[17px] font-semibold">Recents & Saved</span>
-          <ChevronUp size={20} className={clsx("transition-transform", open && "rotate-180")} />
-        </span>
-      </button>
-      {!open && <p className="px-5 text-[13px] text-white/60">Tap a pin or open your lots</p>}
-      <div className={clsx("transition-opacity", open ? "opacity-100" : "opacity-0 pointer-events-none")}>
-        {rows.map((row) => (
-          <div key={row.title} className="mt-3">
-            <p className="px-5 text-[15px] font-medium text-white/80 mb-2">{row.title}</p>
-            {row.ids.length === 0 ? (
-              <p className="px-5 text-[14px] text-white/50 h-[118px]">Nothing here yet — tap ♡ on a lot to save it.</p>
-            ) : (
-              <div className="flex gap-3 overflow-x-auto no-scrollbar px-5 pb-1">
-                {row.ids.map((id) => {
-                  const lot = getLot(id);
-                  if (!lot) return null;
-                  return (
-                    <button key={id} onClick={() => onPick(lot)} className="shrink-0 w-[138px] text-left">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={lot.photo} alt="" className="w-[138px] h-[92px] rounded-[15px] object-cover border border-white/70" />
-                      <span className="block text-[14px] text-white/80 mt-1.5 text-center">{lot.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
     </section>
   );
 }
