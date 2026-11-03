@@ -62,14 +62,14 @@ function PayScreen() {
     <main className="min-h-[100dvh] bg-bg flex flex-col">
       <TopBar back />
 
-      <div className="flex-1 px-6 pt-8 pb-32">
+      <div className="flex-1 px-6 pt-6 pb-32">
         <TitleBlock
           strong={checkout ? "Checkout" : "Payment"}
           light={checkout ? "Pay as you park" : "Confirmation"}
-          className="mb-8"
+          className="mb-6"
         />
 
-        <Card className="p-6 shadow-none border-0 bg-surface">
+        <Card className="p-5 shadow-none border-0 bg-surface">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[14px] font-semibold text-subtle">{lot.kind}</p>
@@ -83,7 +83,7 @@ function PayScreen() {
           </div>
 
           {checkout && (
-            <div className="mt-6 space-y-5">
+            <div className="mt-5 space-y-4">
               <label className="block">
                 <Eyebrow className="mb-1.5">Your stall #</Eyebrow>
                 <input
@@ -108,14 +108,14 @@ function PayScreen() {
               </div>
             </div>
           )}
-          <p className="text-[14px] font-semibold text-subtle mt-6">Proceed Payment</p>
+          <p className="text-[14px] font-semibold text-subtle mt-5">Proceed Payment</p>
           <p className="text-[28px] font-semibold">{formatMoney(amount)}</p>
           <p className="text-[13px] text-muted">
             {hours} hr{hours === 1 ? "" : "s"} · {user.role} rate{reservation ? " · reserved" : ""}
           </p>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3 mt-6" role="radiogroup" aria-label="Payment method">
+        <div className="grid grid-cols-2 gap-3 mt-5" role="radiogroup" aria-label="Payment method">
           {(["apple-pay", "card"] as PaymentMethodId[]).map((id) => {
             const active = chosen === id;
             return (
