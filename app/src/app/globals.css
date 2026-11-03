@@ -49,6 +49,36 @@
 
 :root {
   --nav-h: 60px; /* bottom nav bar, excluding the safe area */
+  /* Safe areas, read through variables so an embed can supply its own (see below). */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+}
+
+/* Inside an iframe (the portfolio's phone mockup) there is no notch and no home indicator, so give
+   the app the insets a phone would, plus a drawn home indicator. Set by the inline script in layout.tsx. */
+html[data-embed] {
+  --sat: 66px;
+  --sab: 34px;
+}
+.home-indicator {
+  display: none;
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  z-index: 300;
+  width: 134px;
+  height: 5px;
+  border-radius: 3px;
+  /* Light on dark bars, dark grey on light ones, like iOS: the pill shows what's behind it, inverted,
+     over a white base so it stays visible where a browser won't filter a backdrop. */
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: invert(1) grayscale(1) contrast(3);
+  backdrop-filter: invert(1) grayscale(1) contrast(3);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+html[data-embed] .home-indicator {
+  display: block;
 }
 
 html,
@@ -77,7 +107,7 @@ body {
     scrollbar-width: none;
   }
   .pb-safe {
-    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+    padding-bottom: max(var(--sab), 0px);
   }
   .tabular {
     font-variant-numeric: tabular-nums;

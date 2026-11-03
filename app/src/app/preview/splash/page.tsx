@@ -45,7 +45,7 @@ export default function SplashPreview() {
 
       <div ref={stage}>{showing && <Splash key={run} />}</div>
 
-      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app z-[200] px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
+      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app z-[200] px-4 pb-[max(var(--sab),16px)]">
         <div className="flex items-center gap-2 rounded-2xl bg-black/75 backdrop-blur p-2 text-white text-[13px]">
           <button onClick={replay} className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-white/15 font-semibold">
             <RotateCcw size={15} /> Replay

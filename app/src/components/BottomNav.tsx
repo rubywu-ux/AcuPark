@@ -21,14 +21,14 @@ const NAV_ITEMS = [
 export const TAB_ROUTES = NAV_ITEMS.map((i) => i.href);
 
 /** Space the nav takes at the bottom: its measured height, or bar + safe area until measured. */
-export const NAV_SPACE = "var(--nav-total, calc(var(--nav-h) + env(safe-area-inset-bottom)))";
+export const NAV_SPACE = "var(--nav-total, calc(var(--nav-h) + var(--sab)))";
 
 export default function BottomNav() {
   const pathname = usePathname();
   const ref = useRef<HTMLElement>(null);
 
   // Publish the nav's real height (bar + safe area) as --nav-total. Mobile Safari's floating
-  // toolbar makes 100dvh and env(safe-area-inset-bottom) disagree, so screens that sit on top
+  // toolbar makes 100dvh and var(--sab) disagree, so screens that sit on top
   // of the nav (the map) size themselves from this instead of a calc.
   useEffect(() => {
     const nav = ref.current;

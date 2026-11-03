@@ -100,7 +100,7 @@ export default function ReservationDetail() {
         </Card>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-6 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] bg-gradient-to-t from-bg via-bg to-transparent space-y-2">
+      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-6 pt-3 pb-[max(var(--sab),20px)] bg-gradient-to-t from-bg via-bg to-transparent space-y-2">
         {r.status === "upcoming" && !ended ? (
           <>
             <Button block href={`/navigate?res=${r.id}`}>

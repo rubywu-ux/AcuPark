@@ -231,7 +231,7 @@ function ReserveFlow() {
         )}
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] bg-gradient-to-t from-surface via-surface to-transparent">
+      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-5 pt-3 pb-[max(var(--sab),20px)] bg-gradient-to-t from-surface via-surface to-transparent">
         {step === 0 && (
           <div className="flex items-center gap-3">
             <div className="flex-1 rounded-2xl border border-line bg-card h-14 px-4 flex flex-col justify-center">

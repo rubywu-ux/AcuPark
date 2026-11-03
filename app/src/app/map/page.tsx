@@ -131,7 +131,7 @@ function MapScreen() {
 
       {/* Header band */}
       <div className="absolute top-0 inset-x-0 z-[1000]">
-        <header className="bg-band text-white px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3 shadow-lift">
+        <header className="bg-band text-white px-4 pt-[max(var(--sat),12px)] pb-3 shadow-lift">
           <div className="flex items-center gap-2.5">
             <LotSearch placeholder="Where to park?" hint={CITY_LABEL} onPick={select} onPickPlace={pickPlace} className="flex-1" />
             <IconButton
