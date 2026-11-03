@@ -156,6 +156,10 @@ function ArriveScreen() {
               );
             })}
           </div>
+          {/* Lives here, not under the button, so the Confirm bar matches the checkout screen's exactly. */}
+          <p className="text-[13px] text-muted mt-2">
+            {hrs} hr{hrs === 1 ? "" : "s"} · {reservation ? "reserved" : `${user.role} rate`}
+          </p>
         </div>
       </div>
 
@@ -169,9 +173,6 @@ function ArriveScreen() {
             {processing ? <Spinner /> : `Confirm Payment · ${formatMoney(amount)}`}
           </Button>
         )}
-        <p className="text-center text-[12px] text-subtle mt-2">
-          {hrs} hr{hrs === 1 ? "" : "s"} · {reservation ? "reserved" : `${user.role} rate`}
-        </p>
       </div>
 
       <Sheet open={processing && payment === "apple-pay"} onClose={() => {}} title="Apple Pay">
