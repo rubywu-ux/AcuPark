@@ -73,7 +73,7 @@ function ArriveScreen() {
     <main className="min-h-[100dvh] bg-bg flex flex-col">
       <TopBar back="/" />
 
-      <div className="flex-1 px-6 pt-6 pb-32">
+      <div className="flex-1 px-6 pt-5 pb-32">
         <h1 className="text-[30px] leading-[1.1] tracking-tight">
           <span className="block font-light">Located at</span>
           <span className="block font-bold">
@@ -82,7 +82,7 @@ function ArriveScreen() {
           </span>
         </h1>
 
-        <div className="relative mt-5 aspect-[4/3] w-full rounded-card overflow-hidden border-4 border-line">
+        <div className="relative mt-4 aspect-[4/3] w-full rounded-card overflow-hidden border-4 border-line">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photo} alt="Your vehicle" className="w-full h-full object-cover object-bottom" />
           {matching ? (
@@ -118,7 +118,7 @@ function ArriveScreen() {
         </div>
 
         {!reservation && (
-          <div className="mt-6">
+          <div className="mt-5">
             <Eyebrow className="mb-2">How long are you staying?</Eyebrow>
             <div className="grid grid-cols-4 gap-2">
               {[1, 2, 3, 4].map((h) => (
@@ -133,7 +133,7 @@ function ArriveScreen() {
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-5">
           <Eyebrow className="mb-2">Pay with</Eyebrow>
           <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Payment method">
             {(["apple-pay", "card"] as PaymentMethodId[]).map((id) => {
@@ -157,7 +157,7 @@ function ArriveScreen() {
             })}
           </div>
           {/* Lives here, not under the button, so the Confirm bar matches the checkout screen's exactly. */}
-          <p className="text-[13px] text-muted mt-2">
+          <p className="text-[13px] text-muted mt-1.5">
             {hrs} hr{hrs === 1 ? "" : "s"} · {reservation ? "reserved" : `${user.role} rate`}
           </p>
         </div>
