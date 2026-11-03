@@ -59,6 +59,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div style={showNav ? { paddingBottom: NAV_SPACE } : undefined}>{children}</div>
       {showNav && <BottomNav />}
       {splash && !pathname.startsWith("/preview") && <Splash />}
+      {/* Only shown when embedded (html[data-embed]), where the app draws its own home indicator. */}
+      <div className="home-indicator" aria-hidden="true" />
     </div>
   );
 }

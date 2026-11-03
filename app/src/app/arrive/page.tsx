@@ -159,7 +159,7 @@ function ArriveScreen() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-6 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] bg-gradient-to-t from-bg via-bg to-transparent">
+      <div className="fixed bottom-0 inset-x-0 mx-auto max-w-app px-6 pt-3 pb-[max(var(--sab),20px)] bg-gradient-to-t from-bg via-bg to-transparent">
         {!spotId ? (
           <Button block variant="brand" href="/map">
             Lot is full — find another

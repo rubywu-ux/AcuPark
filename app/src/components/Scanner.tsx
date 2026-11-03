@@ -62,7 +62,7 @@ export default function Scanner({ onClose, onDone }: { onClose: () => void; onDo
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/70" />
       </div>
 
-      <div className="relative flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),14px)]">
+      <div className="relative flex items-center justify-between px-4 pt-[max(var(--sat),14px)]">
         <IconButton label="Close scanner" onClick={onClose} className="bg-white/15 backdrop-blur">
           <X size={22} />
         </IconButton>
@@ -82,7 +82,7 @@ export default function Scanner({ onClose, onDone }: { onClose: () => void; onDo
         </div>
       </div>
 
-      <div className="relative px-6 pb-[max(env(safe-area-inset-bottom),28px)] flex flex-col items-center gap-5">
+      <div className="relative px-6 pb-[max(var(--sab),28px)] flex flex-col items-center gap-5">
         {phase === "analyzing" ? (
           <div className="flex items-center gap-3 h-[76px] text-[17px] font-semibold">
             <Spinner /> Reading plate & location…

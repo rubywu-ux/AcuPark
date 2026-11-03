@@ -94,7 +94,7 @@ export function TopBar({
     router.back();
   };
   return (
-    <header className={clsx("bg-band text-white px-4 pt-[max(env(safe-area-inset-top),14px)] pb-4", className)}>
+    <header className={clsx("bg-band text-white px-4 pt-[max(var(--sat),14px)] pb-4", className)}>
       <div className="flex items-center gap-2 min-h-[44px]">
         {back && (
           <IconButton label="Back" onClick={handleBack} className="-ml-2 hover:bg-white/10">
@@ -300,7 +300,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={show}>
       {children}
       {msg && (
-        <div className="fixed inset-x-0 top-[max(env(safe-area-inset-top),12px)] z-[2000] flex justify-center px-4 pointer-events-none">
+        <div className="fixed inset-x-0 top-[max(var(--sat),12px)] z-[2000] flex justify-center px-4 pointer-events-none">
           <div
             role="status"
             className="max-w-app w-full rounded-2xl bg-ink text-bg px-4 py-3 text-[15px] font-medium shadow-lift animate-fade-up"
@@ -355,7 +355,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     <NotifyContext.Provider value={notify}>
       {children}
       {note && (
-        <div className="fixed inset-x-0 top-[max(env(safe-area-inset-top),10px)] z-[2100] flex justify-center px-3">
+        <div className="fixed inset-x-0 top-[max(var(--sat),10px)] z-[2100] flex justify-center px-3">
           <button
             role="alert"
             onClick={() => {

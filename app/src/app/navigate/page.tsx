@@ -154,7 +154,7 @@ function NavigateScreen() {
       </div>
 
       {/* Turn-by-turn banner */}
-      <div className="absolute top-0 inset-x-0 z-[1000] px-3 pt-[max(env(safe-area-inset-top),12px)] space-y-2">
+      <div className="absolute top-0 inset-x-0 z-[1000] px-3 pt-[max(var(--sat),12px)] space-y-2">
         {phase === "preview" ? (
           <div className="flex items-center gap-3 rounded-2xl bg-band text-white px-3 py-3 shadow-lift">
             <IconButton label="Back" onClick={() => router.back()} className="hover:bg-white/10">
@@ -201,7 +201,7 @@ function NavigateScreen() {
       </div>
 
       {/* Bottom sheet */}
-      <section className="absolute bottom-0 inset-x-0 z-[1000] bg-card rounded-t-[28px] shadow-sheet px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] animate-sheet-up">
+      <section className="absolute bottom-0 inset-x-0 z-[1000] bg-card rounded-t-[28px] shadow-sheet px-5 pt-3 pb-[max(var(--sab),20px)] animate-sheet-up">
         <div className="mx-auto h-1 w-10 rounded-full bg-line mb-4" />
 
         {phase === "arrived" && paidSession ? (
