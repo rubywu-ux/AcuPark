@@ -80,7 +80,7 @@ export default function LotSearch({
           aria-label={placeholder}
           enterKeyHint="search"
         />
-        {hint && !q && !focused && (
+        {hint && !q && (
           <span className="inline-flex items-center gap-1 shrink-0 text-[13px] text-[#8A8694]">
             <MapPin size={13} /> {hint}
           </span>

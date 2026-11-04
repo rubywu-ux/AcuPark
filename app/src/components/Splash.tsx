@@ -27,7 +27,7 @@ export default function Splash() {
           <span className="go-dawgs">Go Dawgs!</span>
         </div>
 
-        <LogoLockup className="splash-brand mt-9" tagline="A campus parking app" />
+        <LogoLockup className="splash-brand mt-9" />
       </div>
     </div>
   );

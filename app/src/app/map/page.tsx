@@ -133,11 +133,11 @@ function MapScreen() {
       <div className="absolute top-0 inset-x-0 z-[1000]">
         <header className="bg-band text-white px-4 pt-[max(var(--sat),12px)] pb-3 shadow-lift">
           <div className="flex items-center gap-2.5">
-            <LotSearch placeholder="Where to park?" hint={CITY_LABEL} onPick={select} onPickPlace={pickPlace} className="flex-1" />
+            <LotSearch placeholder="Where to park?" hint={CITY_LABEL} onPick={select} onPickPlace={pickPlace} className="flex-1 min-w-0" />
             <IconButton
               label="Filters"
               onClick={() => setShowFilters((v) => !v)}
-              className={clsx("relative", showFilters ? "bg-white text-brand" : "bg-white/15 text-white")}
+              className={clsx("relative shrink-0", showFilters ? "bg-white text-brand" : "bg-white/15 text-white")}
             >
               <SlidersHorizontal size={20} />
               {filters.length > 0 && (
