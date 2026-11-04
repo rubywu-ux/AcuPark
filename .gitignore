@@ -1,0 +1,3 @@
+# Blender autosave and the rendered frames/videos (hundreds of MB; rebuild with build_dubs.py)
+design/dubs-3d/*.blend1
+design/dubs-3d/renders/
