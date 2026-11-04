@@ -150,7 +150,7 @@ function MapScreen() {
         </header>
 
         {showFilters && (
-          <div className="flex gap-2 overflow-x-auto no-scrollbar px-5 py-3 animate-fade-up">
+          <div className="flex flex-wrap gap-2 px-5 py-3 animate-fade-up">
             {FILTERS.map((f) => (
               <Chip
                 key={f}
