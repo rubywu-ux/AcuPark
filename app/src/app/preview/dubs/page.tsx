@@ -15,7 +15,7 @@ export default function DubsPreview() {
   }, []);
 
   return (
-    <main className="min-h-[100dvh] bg-band text-white grid place-items-center overflow-hidden">
+    <main className="min-h-[100dvh] bg-[#4b2e7e] text-white grid place-items-center overflow-hidden">{/* the flat UW purple the portfolio section uses */}
       <div key={run} className="dubs-stage" aria-hidden>
         <DubsBark size={240} />
         <span className="bark-lines">
