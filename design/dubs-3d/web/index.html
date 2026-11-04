@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Dubs 3D</title>
+  <meta name="description" content="AcuPark's mascot Dubs in 3D: he watches your cursor, spins when you drag, and barks when you click him." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,500;0,600;1,800&display=swap" />
+  <style>
+    :root {
+      --bg: #4b2e7e;
+      --mustard: #f0bf3e;
+      --shadow: #1c0c38;
+      --chip: rgba(20, 8, 44, 0.42);
+      --chip-text: rgba(255, 255, 255, 0.82);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+    body { font-family: Inter, system-ui, sans-serif; color: #fff; -webkit-tap-highlight-color: transparent; }
+    canvas { display: block; width: 100vw; height: 100dvh; touch-action: none; outline: none; }
+    canvas.hovering { cursor: pointer; }
+
+    .loading {
+      position: fixed; inset: 0; display: grid; place-items: center;
+      font-weight: 600; letter-spacing: 0.02em; color: rgba(255, 255, 255, 0.7);
+      transition: opacity 0.4s ease;
+    }
+    .loading.done { opacity: 0; pointer-events: none; }
+
+    /* "Go Dawgs!" pops out beside his head when he barks (same style as the app splash). */
+    .go-dawgs {
+      position: fixed; left: 0; top: 0; pointer-events: none; white-space: nowrap;
+      font-size: clamp(22px, 3.2vw, 34px); font-weight: 800; font-style: italic;
+      color: var(--mustard); text-shadow: 0 3px 0 var(--shadow);
+      transform-origin: 0% 100%; opacity: 0;
+    }
+    .go-dawgs.pop { animation: go-dawgs 1.4s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+    @keyframes go-dawgs {
+      0% { opacity: 0; transform: translate(var(--x), var(--y)) translate(-30px, 40px) rotate(-18deg) skewX(-10deg) scale(0.3); }
+      22% { opacity: 1; transform: translate(var(--x), var(--y)) rotate(-10deg) skewX(-10deg) scale(1); }
+      78% { opacity: 1; transform: translate(var(--x), var(--y)) translateY(-6px) rotate(-9deg) skewX(-10deg) scale(1); }
+      100% { opacity: 0; transform: translate(var(--x), var(--y)) translateY(-14px) rotate(-9deg) skewX(-10deg) scale(0.96); }
+    }
+
+    .hud {
+      position: fixed; left: 50%; bottom: max(env(safe-area-inset-bottom), 20px); transform: translateX(-50%);
+      display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 16px;
+      background: var(--chip); border-radius: 999px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      font-size: 14px; color: var(--chip-text); white-space: nowrap;
+    }
+    .hud button {
+      font: inherit; font-weight: 600; border: 0; border-radius: 999px; padding: 8px 16px; cursor: pointer;
+      background: var(--mustard); color: #211f27;
+    }
+    .hud button.secondary { background: rgba(255, 255, 255, 0.16); color: #fff; }
+    .hud button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+    @media (max-width: 420px) { .hud .hint-desktop { display: none; } }
+    @media (min-width: 421px) { .hud .hint-touch { display: none; } }
+  </style>
+</head>
+<body>
+  <canvas id="stage" tabindex="0" aria-label="Dubs the Husky in 3D. Drag to spin him; click him or press Space to bark."></canvas>
+  <div class="loading" id="loading">Loading Dubs…</div>
+  <div class="go-dawgs" id="goDawgs" aria-live="polite">Go Dawgs!</div>
+  <div class="hud">
+    <span class="hint-desktop">Drag to spin · click Dubs to bark</span>
+    <span class="hint-touch">Tap to bark</span>
+    <button id="barkBtn" type="button">Bark</button>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+    // Sticker palette (same hexes as DubsBark.tsx / build_dubs.py).
+    const COLORS = {
+      Dark: "#3b3742", Fur: "#f6efe1", Grey: "#8c8794", Mustard: "#f0bf3e", Purple: "#502e83",
+      Pink: "#e7a7a4", MouthIn: "#5c1f2c", Tongue: "#e8798a",
+    };
+    const INK = "#211f27";
+    const BACKDROP = "#4b2e7e";
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const canvas = document.getElementById("stage");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(BACKDROP);
+
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+    camera.position.set(1.15, 1.45, 5.6); // same framing as the Blender hero camera
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(0, 1.05, 0);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+    controls.minDistance = 3.4;
+    controls.maxDistance = 8;
+    controls.minPolarAngle = 0.75; // never look up from under the floor
+    controls.maxPolarAngle = 1.62;
+    controls.rotateSpeed = 0.7;
+
+    // Cel lighting: one warm key + soft fill, quantized into 3 flat bands like the renders.
+    scene.add(new THREE.HemisphereLight("#ffffff", "#6b55a0", 1.1));
+    const key = new THREE.DirectionalLight("#fff4e6", 2.4);
+    key.position.set(-2.6, 4.2, 3.4);
+    scene.add(key);
+    const fill = new THREE.DirectionalLight("#e9e2ff", 0.6);
+    fill.position.set(3.2, 2.0, 2.6);
+    scene.add(fill);
+
+    const bands = new Uint8Array([158, 214, 255]); // shadow / mid / lit
+    const gradientMap = new THREE.DataTexture(bands, bands.length, 1, THREE.RedFormat);
+    gradientMap.minFilter = gradientMap.magFilter = THREE.NearestFilter;
+    gradientMap.needsUpdate = true;
+
+    function materialFor(name) {
+      if (name === "Outline" || name === "Ink") return new THREE.MeshBasicMaterial({ color: INK });
+      if (name === "White") return new THREE.MeshBasicMaterial({ color: "#ffffff" });
+      // Tail: black fading into the white tip, painted per vertex in Blender.
+      if (name === "TailFur") return new THREE.MeshToonMaterial({ color: "#ffffff", vertexColors: true, gradientMap });
+      return new THREE.MeshToonMaterial({ color: COLORS[name] ?? "#ff00ff", gradientMap });
+    }
+
+    // Soft contact shadow pooled under him.
+    {
+      const c = document.createElement("canvas");
+      c.width = c.height = 128;
+      const g = c.getContext("2d");
+      const grad = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, "rgba(36,16,74,0.55)");
+      grad.addColorStop(1, "rgba(36,16,74,0)");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 128, 128);
+      const tex = new THREE.CanvasTexture(c);
+      const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 1.24), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.set(0.08, 0.004, 0.08);
+      scene.add(shadow);
+    }
+
+    // ---- Load Dubs and grab his pivots
+    const rig = {};
+    const rest = {};
+    const pickables = [];
+    const tailMeshes = new Set();
+    new GLTFLoader().load("./dubs.glb", (gltf) => {
+      const root = gltf.scene;
+      root.traverse((o) => {
+        if (o.isMesh) {
+          o.material = materialFor(o.material.name);
+          pickables.push(o);
+        }
+      });
+      const joints = [
+        "BodyPivot", "HipPivot", "NeckPivot", "HeadPivot", "JawPivot", "EarPivot.L", "EarPivot.R", "TailPivot",
+        "FrontLegPivot.L", "FrontLegPivot.R", "HindLegPivot.L", "HindLegPivot.R", "HindFootPivot.L", "HindFootPivot.R",
+      ];
+      for (const name of joints) {
+        const node = root.getObjectByName(name.replace(".", "")) ?? root.getObjectByName(name);
+        rig[name] = node;
+        node.rotation.order = "YXZ";
+        rest[name] = { rot: node.rotation.clone(), scale: node.scale.clone(), pos: node.position.clone() };
+      }
+      // The standing Dubs (its own body, built for the tail chase) is swapped in mid-hop.
+      const standJoints = [
+        "StandPivot", "S_BodyPivot", "S_NeckPivot", "S_HeadPivot", "S_EarPivot.L", "S_EarPivot.R", "S_TailPivot",
+        "S_FrontLegPivot.L", "S_FrontLegPivot.R", "S_HindLegPivot.L", "S_HindLegPivot.R", "S_HockPivot.L", "S_HockPivot.R",
+      ];
+      for (const name of standJoints) {
+        const node = root.getObjectByName(name.replace(".", "")) ?? root.getObjectByName(name);
+        rig[name] = node;
+        node.rotation.order = "YXZ";
+        rest[name] = { rot: node.rotation.clone(), scale: node.scale.clone(), pos: node.position.clone() };
+      }
+      rig.StandPivot.visible = false;
+      for (const n of ["S_Mouth", "S_Tongue"]) {
+        const part = root.getObjectByName(n);
+        if (part) part.visible = false;
+      }
+      // Meshes under either tail: clicking these starts a tail chase instead of a bark.
+      rig.TailPivot.traverse((o) => o.isMesh && tailMeshes.add(o));
+      rig.S_TailPivot.traverse((o) => o.isMesh && tailMeshes.add(o));
+      rig.root = root;
+      // The inside of the mouth only shows while the jaw is open (no dark sliver at rest).
+      rig.mouthParts = ["Mouth", "Tongue"].map((n) => root.getObjectByName(n)).filter(Boolean);
+      root.updateMatrixWorld(true);
+      setupMorph(root);
+      scene.add(root);
+      document.getElementById("loading").classList.add("done");
+    });
+
+    // ---- Pointer: look-at target, hover, click-to-bark (ignoring drags)
+    const pointer = new THREE.Vector2();
+    let pointerActive = false;
+    let hovering = false;
+    let down = null;
+    const raycaster = new THREE.Raycaster();
+
+    function setPointer(e) {
+      const r = canvas.getBoundingClientRect();
+      pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      pointerActive = true;
+    }
+    /** What's under the pointer: "tail", "body", or null. */
+    function pick() {
+      raycaster.setFromCamera(pointer, camera);
+      const hit = raycaster.intersectObjects(pickables, false)[0];
+      if (!hit) return null;
+      return tailMeshes.has(hit.object) ? "tail" : "body";
+    }
+    canvas.addEventListener("pointermove", (e) => {
+      setPointer(e);
+      hovering = pickables.length > 0 && pick() !== null;
+      canvas.classList.toggle("hovering", hovering);
+    });
+    canvas.addEventListener("pointerleave", () => {
+      pointerActive = false;
+      hovering = false;
+      canvas.classList.remove("hovering");
+    });
+    canvas.addEventListener("pointerdown", (e) => {
+      setPointer(e);
+      down = { x: e.clientX, y: e.clientY, t: performance.now() };
+    });
+    canvas.addEventListener("pointerup", (e) => {
+      if (!down) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      const quick = performance.now() - down.t < 450;
+      down = null;
+      if (moved < 6 && quick) {
+        if (pick()) bark(); // anywhere on him, tail included
+      }
+      if (e.pointerType !== "mouse") pointerActive = false; // touch: look back at the camera after a tap
+    });
+    document.getElementById("barkBtn").addEventListener("click", () => bark());
+    canvas.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        bark();
+      }
+    });
+
+    // ---- Bark: rear back, snap forward with the jaw open, ears flick, body squash, "Go Dawgs!"
+    let barkStart = -Infinity;
+    const BARK_MS = 700;
+    const goDawgs = document.getElementById("goDawgs");
+    function bark() {
+      if (!rig.HeadPivot || performance.now() - barkStart < BARK_MS * 0.8 || isChasing()) return;
+      barkStart = performance.now();
+      // Anchor just off the right side of his head as seen from the current camera angle.
+      const head = new THREE.Vector3();
+      rig.HeadPivot.getWorldPosition(head);
+      const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+      head.addScaledVector(right, 0.62).add(new THREE.Vector3(0, 0.98, 0)).project(camera);
+      const r = canvas.getBoundingClientRect();
+      const x = Math.min(((head.x + 1) / 2) * r.width, r.width - goDawgs.offsetWidth - 12);
+      goDawgs.style.setProperty("--x", `${x}px`);
+      goDawgs.style.setProperty("--y", `${((1 - head.y) / 2) * r.height - goDawgs.offsetHeight}px`);
+      goDawgs.classList.remove("pop");
+      void goDawgs.offsetWidth;
+      goDawgs.classList.add("pop");
+    }
+
+    // Piecewise-smooth keyframes: [[t, value], ...] with t in 0..1 of the bark.
+    const smooth = (x) => x * x * (3 - 2 * x);
+    function track(keys, t) {
+      if (t <= keys[0][0]) return keys[0][1];
+      for (let i = 1; i < keys.length; i++) {
+        const [t1, v1] = keys[i];
+        const [t0, v0] = keys[i - 1];
+        if (t <= t1) return v0 + (v1 - v0) * smooth((t - t0) / (t1 - t0));
+      }
+      return keys[keys.length - 1][1];
+    }
+    const BARK = {
+      headX: [[0, 0], [0.17, -0.17], [0.32, 0.13], [0.62, -0.03], [1, 0]],
+      jawX: [[0, 0], [0.24, 0], [0.33, 0.62], [0.55, 0.52], [0.8, 0], [1, 0]],
+      earZ: [[0, 0], [0.3, 0], [0.4, 0.28], [0.58, -0.1], [0.8, 0], [1, 0]],
+      squash: [[0, 0], [0.28, 0.035], [0.4, -0.025], [0.7, 0], [1, 0]],
+    };
+
+    // ---- Stand up / sit down, "smart animate" style. Every sitting part glides along a path from
+    // its sitting place toward the matching standing part's place (head to head, legs to legs, the
+    // upright torso tipping level as the hindquarters rise). Halfway, where both models line up, the
+    // sitting model is swapped for the standing one, which carries on along the same path. Parts
+    // only the standing model has (belly, lower hind legs) grow in; the tail tucks and re-curls.
+    const MORPH_PAIRS = [
+      ["HeadPivot", "S_HeadPivot"], ["Flap", "S_Flap"], ["W", "S_W"], ["Torso", "S_Torso"], ["Chest", "S_Bib"],
+      ["Leg.L", "S_Leg.L"], ["Leg.R", "S_Leg.R"], ["Paw.L", "S_Paw.L"], ["Paw.R", "S_Paw.R"],
+      ["Haunch.L", "S_Thigh.L"], ["Haunch.R", "S_Thigh.R"], ["BackFoot.L", "S_Foot.L"], ["BackFoot.R", "S_Foot.R"],
+    ];
+    const MORPH_GROW = ["S_Belly", "S_Shin.L", "S_Shin.R"];
+    const MORPH_SWAP = 0.5;
+    const morph = { pairs: [], grow: [] };
+    const node = (root, name) => root.getObjectByName(name.replace(/\./g, "")) ?? root.getObjectByName(name);
+    const pose = (m) => {
+      const p = { pos: new THREE.Vector3(), quat: new THREE.Quaternion(), scale: new THREE.Vector3() };
+      m.decompose(p.pos, p.quat, p.scale);
+      return p;
+    };
+    function setupMorph(root) {
+      for (const [sitName, standName] of MORPH_PAIRS) {
+        const sit = node(root, sitName);
+        const stand = node(root, standName);
+        if (!sit || !stand) continue;
+        const sitRest = pose(sit.matrixWorld);
+        const standRest = pose(stand.matrixWorld);
+        // The upright sitting torso tips level and settles into the standing bean's place, so at
+        // the swap it already matches the standing body's shape (instead of sliding upright).
+        const sitEnd = sitName === "Torso"
+          ? { pos: new THREE.Vector3(0, 0.68, -0.02), quat: new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)), scale: new THREE.Vector3(0.94, 0.97, 0.93) }
+          : standRest;
+        const reshape = sitName === "Torso"; // reaches the standing body's place by the swap
+        const standStart = reshape ? standRest : sitRest;
+        morph.pairs.push({ sit, stand, reshape, sitRest, sitEnd, standStart, standRest, sitLocal: sit.matrix.clone(), standLocal: stand.matrix.clone() });
+      }
+      for (const n of MORPH_GROW) {
+        const part = node(root, n);
+        if (part) morph.grow.push({ part, scale: part.scale.clone() });
+      }
+      for (const n of ["TailPivot", "S_TailPivot"]) morph[n] = { node: node(root, n), scale: node(root, n).scale.clone() };
+    }
+    const tmpM = new THREE.Matrix4();
+    const tmpInv = new THREE.Matrix4();
+    // Put `obj` at pose lerp(a, b, t), expressed in Dubs's own space (so his spin doesn't matter).
+    function placeAt(obj, a, b, t) {
+      const pos = a.pos.clone().lerp(b.pos, t);
+      const quat = a.quat.clone().slerp(b.quat, t);
+      const scale = a.scale.clone().lerp(b.scale, t);
+      tmpM.compose(pos, quat, scale);
+      obj.parent.updateWorldMatrix(true, false);
+      tmpInv.copy(obj.parent.matrixWorld).invert().multiply(rig.root.matrixWorld);
+      tmpM.premultiply(tmpInv);
+      tmpM.decompose(obj.position, obj.quaternion, obj.scale);
+    }
+    // k: 0 = sitting, 1 = standing. Returns true while the standing model is the one showing.
+    function applyMorph(k) {
+      const standing = k >= MORPH_SWAP;
+      rig.BodyPivot.visible = !standing;
+      rig.StandPivot.visible = standing;
+      rig.root.updateMatrixWorld(true);
+      for (const p of morph.pairs) {
+        if (k <= 0) {
+          p.sit.matrix.copy(p.sitLocal).decompose(p.sit.position, p.sit.quaternion, p.sit.scale);
+        } else if (!standing) {
+          placeAt(p.sit, p.sitRest, p.sitEnd, p.reshape ? smooth(k / MORPH_SWAP) : k);
+        }
+        if (k >= 1) {
+          p.stand.matrix.copy(p.standLocal).decompose(p.stand.position, p.stand.quaternion, p.stand.scale);
+        } else if (standing) {
+          placeAt(p.stand, p.standStart, p.standRest, k);
+        }
+      }
+      const grow = standing ? smooth((k - MORPH_SWAP) / (1 - MORPH_SWAP)) : 0;
+      for (const g of morph.grow) g.part.scale.copy(g.scale).multiplyScalar(Math.max(grow, 0.001));
+      // The tail tucks in on the way up and the curled standing tail unfurls after the swap.
+      const tuck = standing ? 0.3 + 0.7 * grow : 1 - 0.7 * smooth(k / MORPH_SWAP);
+      morph[standing ? "S_TailPivot" : "TailPivot"].node.scale.copy(morph[standing ? "S_TailPivot" : "TailPivot"].scale).multiplyScalar(tuck);
+      return standing;
+    }
+
+    // ---- Tail chase. He looks back at his tail and stands up smoothly (rear rising, torso leveling,
+    // front paws planted), trots two tight circles after it -- diagonal legs together, hocks lifting,
+    // chest and hips bobbing like two offset bouncing balls, head craned back -- then sits back down
+    // the same way and shakes off the dizziness.
+    let chaseStart = -Infinity;
+    const CHASE_MS = 4200;
+    const SPINS = reduceMotion ? 1 : 2;
+    const isChasing = () => performance.now() - chaseStart < CHASE_MS;
+    function chase() {
+      if (!rig.root || isChasing() || performance.now() - barkStart < BARK_MS) return;
+      chaseStart = performance.now();
+    }
+    const CHASE = {
+      stand: [[0, 0], [0.06, 0], [0.21, 1], [0.79, 1], [0.94, 0], [1, 0]], // 0 sitting .. 1 standing
+      spin: [[0, 0], [0.22, 0], [0.77, 1], [1, 1]], // fraction of the full turns
+      trot: [[0, 0], [0.21, 0], [0.26, 1], [0.73, 1], [0.78, 0], [1, 0]],
+      lookBack: [[0, 0], [0.05, 1], [0.79, 1], [0.9, 0], [1, 0]],
+      dizzy: [[0, 0], [0.92, 0], [0.95, 1], [1, 0]],
+      settle: [[0, 0], [0.92, 0], [0.95, 1], [1, 0]],
+    };
+    let gait = 0;
+    function setRot(name, dx = 0, dy = 0, dz = 0) {
+      const r = rest[name].rot;
+      rig[name].rotation.set(r.x + dx, r.y + dy, r.z + dz);
+    }
+    function applyChase(c, dt) {
+      const standing = applyMorph(track(CHASE.stand, c));
+
+      const trot = track(CHASE.trot, c);
+      const lookBack = track(CHASE.lookBack, c);
+      gait += dt * 21 * trot; // quick little puppy steps
+      const a = Math.sin(gait) * trot;
+      const lift = Math.cos(gait) * trot; // > 0 while a diagonal pair swings forward
+
+      rig.root.rotation.y = track(CHASE.spin, c) * Math.PI * 2 * SPINS;
+      rig.root.position.y = 0;
+
+      if (standing) {
+        // Diagonal pairs: front-left with hind-right, front-right with hind-left.
+        setRot("S_FrontLegPivot.L", -0.4 * a);
+        setRot("S_HindLegPivot.R", -0.34 * a);
+        setRot("S_FrontLegPivot.R", 0.4 * a);
+        setRot("S_HindLegPivot.L", 0.34 * a);
+        // Hocks fold to lift each back foot as it swings forward.
+        setRot("S_HockPivot.R", 0.45 * Math.max(0, lift));
+        setRot("S_HockPivot.L", 0.45 * Math.max(0, -lift));
+        // Chest and hips bob like two offset bouncing balls: a little rock and roll each stride.
+        const body = rig.S_BodyPivot;
+        body.position.copy(rest.S_BodyPivot.pos).add(new THREE.Vector3(0, Math.abs(a) * 0.03, 0));
+        setRot("S_BodyPivot", Math.sin(gait * 2) * 0.035 * trot, 0, a * 0.04);
+        // Craning back at his tail, ears pinned, tail flicking just out of reach.
+        setRot("S_NeckPivot", 0, 0.35 * lookBack, 0);
+        rig.S_HeadPivot.rotateY(0.55 * lookBack); // on top of the stand-up glide
+        setRot("S_EarPivot.L", 0, 0, -0.2 * lookBack);
+        setRot("S_EarPivot.R", 0, 0, 0.2 * lookBack);
+        setRot("S_TailPivot", 0, Math.sin(gait * 1.5) * 0.35, 0);
+      }
+      return {
+        lookBack: standing ? 0 : lookBack,
+        dizzy: track(CHASE.dizzy, c),
+        squash: track(CHASE.settle, c) * 0.05,
+      };
+    }
+
+    // ---- Head follow: aim the head at the pointer projected onto a plane facing the camera
+    const look = { yaw: 0, pitch: 0 };
+    const plane = new THREE.Plane();
+    const tmp = new THREE.Vector3();
+    const headWorld = new THREE.Vector3();
+    function updateLook(dt) {
+      let yaw = 0;
+      let pitch = 0;
+      if (pointerActive && rig.HeadPivot) {
+        rig.HeadPivot.getWorldPosition(headWorld);
+        headWorld.y += 0.45; // aim from the middle of the face, not the neck
+        camera.getWorldDirection(tmp);
+        plane.setFromNormalAndCoplanarPoint(tmp.negate(), headWorld);
+        raycaster.setFromCamera(pointer, camera);
+        const hit = raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+        if (hit) {
+          hit.add(tmp.copy(camera.position).sub(headWorld).normalize().multiplyScalar(2.2)); // a point in front of him
+          const local = rig.BodyPivot.worldToLocal(hit.clone());
+          const from = rig.BodyPivot.worldToLocal(headWorld.clone());
+          const d = local.sub(from);
+          yaw = THREE.MathUtils.clamp(Math.atan2(d.x, d.z), -0.75, 0.75);
+          pitch = THREE.MathUtils.clamp(Math.atan2(d.y, Math.hypot(d.x, d.z)), -0.16, 0.3); // looking far down would sink his muzzle into the bandana
+        }
+      }
+      const k = 1 - Math.exp(-dt * 7);
+      look.yaw += (yaw - look.yaw) * k;
+      look.pitch += (pitch - look.pitch) * k;
+    }
+
+    // ---- Loop
+    function resize() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      // 30° vertical on wide screens; on tall (phone) screens hold a ~26° horizontal view
+      // instead, so he never gets cropped at the sides.
+      const aspect = w / h;
+      const fitWidth = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(13)) / aspect));
+      camera.fov = Math.max(30, Math.min(fitWidth, 58));
+      camera.updateProjectionMatrix();
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    const poseParam = new URLSearchParams(location.search).get("pose");
+    let debugPose = poseParam === null ? null : Number(poseParam);
+    // With ?pose=… the moment can also be scrubbed from the console: __dubsPose(0.13)
+    if (debugPose !== null) window.__dubsPose = (v) => (debugPose = v);
+    const clock = new THREE.Clock();
+    let wag = 0;
+    renderer.setAnimationLoop(() => {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const time = clock.elapsedTime;
+      controls.update();
+
+      if (rig.HeadPivot) {
+        updateLook(dt);
+        const b = Math.min((performance.now() - barkStart) / BARK_MS, 1);
+        const barking = b < 1;
+        const c = Math.min((performance.now() - chaseStart) / CHASE_MS, 1);
+        const chasing = c < 1;
+
+        // Chase (or rest): stand / trot / sit pose on the body joints.
+        const pose = applyChase(debugPose ?? (chasing ? c : 1), dt);
+
+        const head = rig.HeadPivot;
+        const idleTilt = reduceMotion ? 0 : Math.sin(time * 0.9) * 0.05;
+        const dizzy = pose.dizzy * Math.sin(c * 90) * 0.14;
+        // Craning back at his tail overrides following your pointer.
+        head.rotation.y = rest.HeadPivot.rot.y + look.yaw * (1 - pose.lookBack) + pose.lookBack * 0.75;
+        // While barking he lifts his head toward you rather than following the pointer down.
+        const lookPitch = barking ? Math.max(look.pitch, 0) * 0.5 : look.pitch;
+        head.rotation.x = rest.HeadPivot.rot.x - lookPitch * 0.85 + (barking ? track(BARK.headX, b) : 0);
+        head.rotation.z = rest.HeadPivot.rot.z + idleTilt - look.yaw * 0.12 * (1 - pose.lookBack) + dizzy;
+
+        const jawOpen = barking ? track(BARK.jawX, b) : 0;
+        rig.JawPivot.rotation.x = rest.JawPivot.rot.x + jawOpen;
+        for (const part of rig.mouthParts) part.visible = jawOpen > 0.04;
+
+        const flick = barking ? track(BARK.earZ, b) : -0.18 * pose.lookBack; // ears pinned back mid-chase
+        const perk = hovering ? 0.08 : 0;
+        rig["EarPivot.L"].rotation.z = rest["EarPivot.L"].rot.z + flick + perk;
+        rig["EarPivot.R"].rotation.z = rest["EarPivot.R"].rot.z - flick - perk;
+
+        const breathe = reduceMotion ? 0 : Math.sin(time * 2.2) * 0.008;
+        const squash = (barking ? track(BARK.squash, b) : 0) + pose.squash; // bark, or crouch/land around the chase hops
+        const body = rig.BodyPivot;
+        body.scale.set(1 + squash * 0.6, 1 + breathe - squash, 1 + squash * 0.6);
+
+        // Tail wags all the time: faster when you hover or he barks, frantic while he chases it.
+        const speed = chasing ? 26 : hovering || barking ? 14 : 7;
+        wag += dt * speed;
+        rig.TailPivot.rotation.y = rest.TailPivot.rot.y + (reduceMotion ? 0 : Math.sin(wag) * 0.3);
+      }
+
+      renderer.render(scene, camera);
+    });
+  </script>
+</body>
+</html>
